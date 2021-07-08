@@ -227,7 +227,8 @@ function eventinstallment_civicrm_buildForm($formName, &$form) {
       if (count($recurringPaymentProcessor)) {
         $form->assign('recurringPaymentProcessor', $recurringPaymentProcessor);
       }
-      $form->addElement('checkbox', 'is_recur', ts('Recurring Contributions'), NULL,
+      $form->addElement('checkbox', 'is_recur', ts('Enable Installment'),
+        NULL,
         ['onclick' => "showHideByValue('is_recur',true,'recurFields','table-row','radio',false);"]
       );
       $form->addCheckBox('recur_frequency_unit', ts('Supported recurring units'),
@@ -247,9 +248,61 @@ function eventinstallment_civicrm_buildForm($formName, &$form) {
     }
   }
   elseif ($formName == 'CRM_Event_Form_Registration_Register') {
+    $eid = $form->getVar('_eventId');
     if ($form->_values['event']['is_monetary'] && $form->_values['event']['is_recur']) {
       CRM_Eventinstallment_Utils::buildRecurForm($form);
     }
+    $defaults = CRM_Eventinstallment_Utils::getSettingsConfig($eid);
+    $session = CRM_Core_Session::singleton();
+    if (!in_array($eid, (array)$defaults['events_id'])) {
+      $session->set('is_jcc_member', FALSE);
+
+      return;
+    }
+    CRM_Eventinstallment_Utils::_add_reload_textfield($form);
+    $currentContactID = $form->getLoggedInUserContactID();
+
+    $relatedContacts = CRM_Eventinstallment_Utils::relatedContactsListing($form);
+    foreach ($relatedContacts as $contactID => $contact) {
+      if ($contact['is_parent']) {
+        $attribute = [];
+        if ($contactID == $currentContactID) {
+          $attribute = ['class' => 'currentUser'];
+        }
+        $element = $form->add('checkbox', "contacts_parent_{$contactID}",
+          $contact['display_name'], NULL, FALSE, $attribute);
+        if (!$contact['skip_registration'] && $contactID == $currentContactID) {
+          $setDefaultForParent = ["contacts_parent_{$contactID}" => 1];
+          $form->setDefaults($setDefaultForParent);
+        }
+      }
+      else {
+        $element = $form->add('checkbox', "contacts_child_{$contactID}", $contact['display_name']);
+      }
+      if ($contact['skip_registration']) {
+        $element->freeze();
+      }
+    }
+    $form->assign('relatedContacts', $relatedContacts);
+    $isJccMember = FALSE;
+    if (!empty($defaults['events_jcc_field']) && !empty($relatedContacts[$currentContactID][$defaults['events_jcc_field']])) {
+      $isJccMember = TRUE;
+    }
+    $session->set('is_jcc_member', $isJccMember);
+    $form->assign('currentContactID', $currentContactID);
+    CRM_Core_Region::instance('page-body')->add(['template' => 'CRM/Eventinstallment/ContactListing.tpl']);
+  }
+  elseif($formName == 'CRM_Event_Form_Registration_AdditionalParticipant') {
+    $eid = $form->getVar('_eventId');
+    $defaults = CRM_Eventinstallment_Utils::getSettingsConfig($eid);
+    if (!in_array($eid, (array)$defaults['events_id'])) {
+      return;
+    }
+    [$finalContactList, $childContacts, $parentContacts] = CRM_Eventinstallment_Utils::contactSequenceForRegistration($form);
+    [$dontCare, $additionalPageNumber] = explode('_', $form->getVar('_name'));
+    $contactID = $finalContactList[$additionalPageNumber];
+    $data = CRM_Eventinstallment_Utils::getContactData(array_keys($form->_fields), $contactID);
+    $form->setDefaults($data);
   }
   elseif (in_array($formName, ['CRM_Event_Form_Registration_Confirm', 'CRM_Event_Form_Registration_ThankYou'])) {
     $session = CRM_Core_Session::singleton();
@@ -287,6 +340,38 @@ function eventinstallment_civicrm_validateForm($formName, &$fields, &$files, &$f
       }
     }
   }
+  elseif ($formName == 'CRM_Event_Form_Registration_Register') {
+    $eventId = $form->getVar('_eventId');
+    $result = civicrm_api3('Event', 'get', [
+      'id' => $eventId,
+    ]);
+    $eventDetails = $result['values'][$eventId];
+
+    // parents can only register for events that allow it
+    try {
+      $fid = civicrm_api3('CustomField', 'getvalue', [
+        'custom_group_id' => 'Multireg',
+        'name' => 'Parents_Can_Register',
+        'return' => 'id',
+      ]);
+      $parents_can_register = !empty($eventDetails["custom_$fid"]);
+    }
+    catch (CiviCRM_API3_Exception $e) {
+      $parents_can_register = FALSE;
+    }
+    if (!$parents_can_register) {
+      $childContacts = [];
+      foreach ($fields as $k => $v) {
+        if (strpos($k, 'contacts_child_') === 0) {
+          [, , $cid] = explode('_', $k);
+          $childContacts[$cid] = $cid;
+        }
+      }
+      if (empty($childContacts)) {
+        $errors['additional_participants'] = ts('Select at least one child');
+      }
+    }
+  }
 }
 
 /**
@@ -320,6 +405,29 @@ function eventinstallment_civicrm_postProcess($formName, &$form) {
       CRM_Core_DAO::executeQuery($query, $param);
     }
   }
+  elseif ($formName == "CRM_Event_Form_Registration_Confirm") {
+    $eid = $form->getVar('_eventId');
+    $defaults = CRM_Eventinstallment_Utils::getSettingsConfig($eid);
+    if (!in_array($eid, (array)$defaults['events_id'])) {
+      return;
+    }
+    $session = CRM_Core_Session::singleton();
+    $session->set('event_contributionID', $form->_values['contributionId']);
+    $session = CRM_Core_Session::singleton();
+    $eventContributionID = $session->get('event_contributionID');
+
+    if ($session->get('parents_not_allowed') && $form->getVar('_participantId')) {
+      //$parentContactID = $session->get('parents_not_allowed_contact_id');
+      $form->getVar('_participantId');
+      $result = civicrm_api3('ParticipantStatusType', 'getvalue', [
+        'return' => "id",
+        'name' => "not_attending",
+      ]);
+      $is_Member = CRM_Core_DAO::setFieldValue('CRM_Event_DAO_Participant',
+        $form->getVar('_participantId'), 'status_id', $result);
+
+    }
+  }
 }
 
 
@@ -329,6 +437,7 @@ function eventinstallment_civicrm_eventinstallment_pre(&$value, &$form, $contact
 
 
 function eventinstallment_civicrm_pre($op, $objectName, $objectId, &$objectRef ) {
+  /*
   if ($objectName == 'Participant' && $op != 'delete') {
     $additinalParticipant = FALSE;
     if (!empty($objectId)) {
@@ -360,6 +469,134 @@ function eventinstallment_civicrm_pre($op, $objectName, $objectId, &$objectRef )
         $newStatus = array_search('Partially paid', $participantStatuses);
       }
       $objectRef['participant_status_id'] = $objectRef['status_id'] = $newStatus;
+    }
+  }
+  */
+}
+
+function eventinstallment_civicrm_buildAmount($pageType, &$form, &$amounts) {
+  if ((!$form->getVar('_action')
+      || ($form->getVar('_action') & CRM_Core_Action::PREVIEW)
+      || ($form->getVar('_action') & CRM_Core_Action::ADD)
+      || ($form->getVar('_action') & CRM_Core_Action::UPDATE)
+    )
+    && !empty($amounts) && is_array($amounts) && ($pageType == 'event')
+  ) {
+
+    $formName = get_class($form);
+    if (!in_array(get_class($form), [
+      'CRM_Event_Form_Registration_Register',
+      'CRM_Event_Form_Registration_AdditionalParticipant',
+    ])
+    ) {
+      return;
+    }
+    $eid = $form->getVar('_eventId');
+    $defaults = CRM_Eventinstallment_Utils::getSettingsConfig($eid);
+    if (!in_array($eid, (array)$defaults['events_id'])) {
+      return;
+    }
+
+    $currentContactID = $form->getLoggedInUserContactID();
+
+    if ($formName == 'CRM_Event_Form_Registration_AdditionalParticipant') {
+      [$finalContactList, $childContacts, $parentContacts] = CRM_Eventinstallment_Utils::contactSequenceForRegistration($form);
+      [$dontCare, $additionalPageNumber] = explode('_', $form->getVar('_name'));
+      $contactID = $finalContactList[$additionalPageNumber];
+      $childNumber = 0;
+      if (in_array($contactID, $childContacts)) {
+        $childNumber = CRM_Utils_Array::key($contactID, $childContacts);
+      }
+      /*
+      echo '<pre>$contactID : '; print_r($contactID); echo '</pre>';
+      echo '<pre>$childNumber : '; print_r($childNumber); echo '</pre>';
+      echo '<pre>$childContacts : '; print_r($childContacts); echo '</pre>';
+      echo '<pre>$finalContactList : '; print_r($finalContactList); echo '</pre>';
+      */
+    }
+    else {
+      $childNumber = 0;
+      try {
+
+        $result = civicrm_api3('Event', 'get', [
+          'id' => $eid,
+        ]);
+        $eventDetails = $result['values'][$eid];
+        $fid = civicrm_api3('CustomField', 'getvalue', [
+          'custom_group_id' => 'Multireg',
+          'name' => 'Parents_Can_Register',
+          'return' => 'id',
+        ]);
+        $parents_can_register = !empty($eventDetails["custom_$fid"]);
+      }
+      catch (CiviCRM_API3_Exception $e) {
+        $parents_can_register = FALSE;
+      }
+
+      if (!$parents_can_register) {
+        $amount = 0;
+        $session = CRM_Core_Session::singleton();
+        $session->set('parents_not_allowed', TRUE);
+        $session->set('parents_not_allowed_contact_id', $currentContactID);
+      }
+    }
+    //var_dump($parents_can_register);
+
+    $psid = $form->get('priceSetId');
+    $getPriceSetsInfo = CRM_Eventinstallment_Utils::getPriceSetsInfo($psid);
+
+    $session = CRM_Core_Session::singleton();
+    $isJccMember = FALSE;
+    if($session->get('is_jcc_member')) {
+      $isJccMember = TRUE;
+    }
+    //echo '<pre>$childNumber - '; print_r($childNumber); echo '</pre>';
+    $originalAmounts = $amounts;
+    foreach ($amounts as $fee_id => &$fee) {
+      if (!is_array($fee['options'])) {
+        continue;
+      }
+      foreach ($fee['options'] as $option_id => &$option) {
+        if (array_key_exists($option_id, $getPriceSetsInfo)) {
+          [$defaultFee, $sellAmount, $discountAmount] =
+            CRM_Eventinstallment_Utils::getDiscountAmount($eid, $option_id,
+              $childNumber, $isJccMember);
+          if (empty($sellAmount)) {
+            continue;
+          }
+          if ($childNumber == 0 && isset($parents_can_register) && !$parents_can_register) {
+            $sellAmount = 0;
+          }
+          elseif ($formName == 'CRM_Event_Form_Registration_Register' &&
+            !empty($form->_submitValues) &&
+            empty($form->_submitValues['contacts_parent_' . $currentContactID])) {
+            $sellAmount = 0;
+            $session = CRM_Core_Session::singleton();
+            $session->set('parents_not_allowed', TRUE);
+          }
+          elseif ($formName == 'CRM_Event_Form_Registration_Register' &&
+            !empty($form->_submitValues) &&
+            !empty($form->_submitValues['contacts_parent_' . $currentContactID])) {
+            $session = CRM_Core_Session::singleton();
+            $session->set('parents_not_allowed', FALSE);
+          }
+          /*
+          $data = 'Label : ' . $option['label'] . ' -  ' . $defaultFee . ' -> ' . $sellAmount . ' : discount Amount :' . $discountAmount;
+          echo '<pre>';echo $data;echo '</pre>';
+          */
+          $option['amount'] = $sellAmount;
+
+          // Re-calculate VAT/Sales TAX on discounted amount.
+          if (array_key_exists('tax_amount', $originalAmounts[$fee_id]['options'][$option_id]) &&
+            array_key_exists('tax_rate', $originalAmounts[$fee_id]['options'][$option_id])
+          ) {
+            $recalculateTaxAmount = CRM_Contribute_BAO_Contribution_Utils::calculateTaxAmount($amount, $originalAmounts[$fee_id]['options'][$option_id]['tax_rate']);
+            if (!empty($recalculateTaxAmount)) {
+              $option['tax_amount'] = round($recalculateTaxAmount['tax_amount'], 2);
+            }
+          }
+        }
+      }
     }
   }
 }
