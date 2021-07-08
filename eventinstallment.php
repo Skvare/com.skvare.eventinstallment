@@ -600,3 +600,20 @@ function eventinstallment_civicrm_buildAmount($pageType, &$form, &$amounts) {
     }
   }
 }
+
+/**
+ * Implements hook_civicrm_navigationMenu().
+ *
+ * @link https://docs.civicrm.org/dev/en/latest/hooks/hook_civicrm_navigationMenu
+ */
+function eventinstallment_civicrm_navigationMenu(&$menu) {
+  _eventinstallment_civix_insert_navigation_menu($menu, 'Administer/CiviEvent', [
+    'label' => E::ts('Custom Event Signup Setting'),
+    'name' => 'custom_event_signup_listing',
+    'url' => 'civicrm/admin/event/customlisting',
+    'permission' => 'administer CiviCRM',
+    'operator' => 'OR',
+    'separator' => 0,
+  ]);
+  _eventinstallment_civix_navigationMenu($menu);
+}
