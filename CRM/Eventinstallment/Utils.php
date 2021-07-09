@@ -125,7 +125,7 @@ class CRM_Eventinstallment_Utils {
           $type = 2;
         }
         [$newTotalAmount, $discountAmount, $newLabel] = self::_calc_discount
-        ($originalTotalAmount, $contactResult[$defaults['events_financial_discount_group_discount_amount']], $type, 'Fininacial Assistent Discount');
+        ($originalTotalAmount, $contactResult[$defaults['events_financial_discount_group_discount_amount']], $type, 'Financial Assistant Discount');
         $item = [];
         $item['qty'] = 1;
         $item['financial_type_id'] = $_values['event']['financial_type_id'];
@@ -146,10 +146,7 @@ class CRM_Eventinstallment_Utils {
       && !empty($defaults['events_special_discount_type'])
     ) {
       if (in_array($defaults['events_special_discount_group'], $groupContact)) {
-        $type = 1;
-        if ($defaults['events_special_discount_type'] == 'fixed_amount') {
-          $type = 2;
-        }
+        $type = $defaults['events_special_discount_type'];
         [$newTotalAmount, $discountAmount, $newLabel] = self::_calc_discount($originalTotalAmount, $defaults['events_special_discount_amount'], $type, 'Special Discount');
         $item = [];
         $item['qty'] = 1;

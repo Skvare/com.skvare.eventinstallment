@@ -28,7 +28,7 @@ class CRM_Eventinstallment_Form_Setting extends CRM_Core_Form {
   public function buildQuickForm() {
     $groups = ['' => '-- select --'] + CRM_Core_PseudoConstant::nestedGroup();
 
-    $this->add('select', 'events_relationships', 'Relationshiop type',
+    $this->add('select', 'events_relationships', 'Relationship type',
       CRM_Eventinstallment_Utils::relationshipTypes(),
       TRUE, ['class' => 'crm-select2', 'multiple' => 'multiple', 'placeholder' => ts('- any -')]);
 
@@ -42,7 +42,7 @@ class CRM_Eventinstallment_Form_Setting extends CRM_Core_Form {
     $this->add('select', 'events_membership_types', 'Membership Type to Filter Contact',
       $membershipTypes, FALSE, $attribute + ['multiple' => 'multiple']);
 
-    $this->add('select', 'events_group_contact', ts('Contact in this Grouop allowed to Register for Event.'),
+    $this->add('select', 'events_group_contact', ts('Contact in this Group allowed to Register for Event.'),
       $groups, FALSE, $attribute + ['multiple' => 'multiple']);
 
     /*
