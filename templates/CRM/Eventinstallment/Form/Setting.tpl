@@ -1,6 +1,13 @@
 <div id="help">
   <p>Event Discount application Configuration form.</p>
 </div>
+<div>
+<a  class="button no-popup nowrap"
+    href="{crmURL p='civicrm/admin/event/customlisting'
+    q="reset=1&action=preview&id=`$k`"}">
+    <i class="crm-i fa-back"></i><span> {ts}Back to Listing{/ts}</span>
+</a>
+</div>
 
 <div class="crm-block crm-form-block">
 
