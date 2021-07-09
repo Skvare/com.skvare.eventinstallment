@@ -47,6 +47,167 @@ class CRM_Eventinstallment_Utils {
     ];
   }
 
+  public static function canParentRegisterforEvent($eventId) {
+    $result = civicrm_api3('Event', 'get', [
+      'id' => $eventId,
+    ]);
+    $eventDetails = $result['values'][$eventId];
+
+    try {
+      $fid = civicrm_api3('CustomField', 'getvalue', [
+        'custom_group_id' => 'Multireg',
+        'name' => 'Parents_Can_Register',
+        'return' => 'id',
+      ]);
+      $parents_can_register = !empty($eventDetails["custom_$fid"]);
+    }
+    catch (CiviCRM_API3_Exception $e) {
+      $parents_can_register = FALSE;
+    }
+
+    return $parents_can_register;
+  }
+
+  /**
+   * @param $form
+   */
+  public static function getAdditionalDiscount($form) {
+    $session = CRM_Core_Session::singleton();
+    $params = $form->getVar('_params');
+    $totalAmount = $form->getVar('_totalAmount');
+    $lineItem = $form->getVar('_lineItem');
+    $_amount = $form->getVar('_amount');
+    $_values = $form->getVar('_values');
+
+    /*
+    $resultContribution = civicrm_api3('PriceField', 'get', [
+      'sequential' => 1,
+      'price_set_id' => "default_contribution_amount",
+      'api.PriceFieldValue.get' => [],
+    ]);
+    $priceFieldsContribution = reset($resultContribution['values']['0']['api.PriceFieldValue.get']['values']);
+    */
+
+    $currentContactID = $form->getLoggedInUserContactID();
+    $eid = $form->getVar('_eventId');
+
+
+    $defaults = CRM_Eventinstallment_Utils::getSettingsConfig($eid);
+
+
+    $returnField = ["group"];
+    if (!empty($defaults['events_financial_discount_group_discount_amount'])) {
+      $returnField[] = $defaults['events_financial_discount_group_discount_amount'];
+      $returnField[] = $defaults['events_financial_discount_group_discount_type'];
+    }
+    $contactResult = civicrm_api3('Contact', 'getsingle', [
+      'return' => $returnField,
+      'id' => $currentContactID,
+    ]);
+    $groupContact = [];
+    if (!empty($contactResult['groups'])) {
+      $groupContact = explode(',', $contactResult['groups']);
+    }
+    if (!array_key_exists('0', $lineItem)) {
+      array_unshift($lineItem, []);
+    }
+    $originalTotalAmount = $totalAmount;
+    if (!empty($defaults['events_financial_discount_group'])
+      && !empty($defaults['events_financial_discount_group_discount_amount'])
+      && !empty($defaults['events_financial_discount_group_discount_type'])
+    ) {
+      if (in_array($defaults['events_financial_discount_group'], $groupContact) &&
+        !empty($contactResult[$defaults['events_financial_discount_group_discount_amount']]) &&
+        !empty($contactResult[$defaults['events_financial_discount_group_discount_type']])
+      ) {
+        $type = 1;
+        if ($contactResult[$defaults['events_financial_discount_group_discount_type']] == 'fixed_amount') {
+          $type = 2;
+        }
+        [$newTotalAmount, $discountAmount, $newLabel] = self::_calc_discount
+        ($originalTotalAmount, $contactResult[$defaults['events_financial_discount_group_discount_amount']], $type, 'Fininacial Assistent Discount');
+        $item = [];
+        $item['qty'] = 1;
+        $item['financial_type_id'] = $_values['event']['financial_type_id'];
+        //$item['price_field_id'] = $priceFieldsContribution['price_field_id'];
+        //$item['price_field_value_id'] = $priceFieldsContribution['id'];
+        $item['unit_price'] = $discountAmount;
+        $item['line_total'] = $discountAmount;
+        $item['label'] = $newLabel;
+        $item['entity_table'] = "civicrm_contribution";
+        $lineItem[0][] = $item;
+        $totalAmount = $totalAmount + $discountAmount;
+        $_amount[] = ['amount' => $discountAmount, 'label' => $newLabel];
+      }
+    }
+
+    if (!empty($defaults['events_special_discount_group'])
+      && !empty($defaults['events_special_discount_amount'])
+      && !empty($defaults['events_special_discount_type'])
+    ) {
+      if (in_array($defaults['events_special_discount_group'], $groupContact)) {
+        $type = 1;
+        if ($defaults['events_special_discount_type'] == 'fixed_amount') {
+          $type = 2;
+        }
+        [$newTotalAmount, $discountAmount, $newLabel] = self::_calc_discount($originalTotalAmount, $defaults['events_special_discount_amount'], $type, 'Special Discount');
+        $item = [];
+        $item['qty'] = 1;
+        $item['financial_type_id'] = $_values['event']['financial_type_id'];
+        //$item['price_field_id'] = $priceFieldsContribution['price_field_id'];
+        //$item['price_field_value_id'] = $priceFieldsContribution['id'];
+        $item['unit_price'] = $discountAmount;
+        $item['line_total'] = $discountAmount;
+        $item['label'] = $newLabel;
+        $item['entity_table'] = "civicrm_contribution";
+        $lineItem[0][] = $item;
+        $totalAmount = $totalAmount + $discountAmount;
+        $_amount[] = ['amount' => $discountAmount, 'label' => $newLabel];
+      }
+    }
+
+    $form->setVar('_lineItem', $lineItem);
+    $form->assign('lineItem', $lineItem);
+    $form->setVar('_amount', $_amount);
+    $form->assign('amounts', $_amount);
+    $form->setVar('_totalAmount', $totalAmount);
+    $form->assign('totalAmount', $totalAmount);
+    $form->set('totalAmount', $totalAmount);
+  }
+
+  /**
+   * Calculate either a monetary or percentage discount.
+   *
+   * @param $amount
+   * @param $discountAmount
+   * @param int $type
+   * @param string $label
+   * @param string $currency
+   * @return array
+   */
+  public static function _calc_discount($amount, $discountAmount, $type = 1, $label = '', $currency = 'USD') {
+    if ($type == '2') {
+      $newamount = CRM_Utils_Rule::cleanMoney($amount) - CRM_Utils_Rule::cleanMoney($discountAmount);
+      $fmt_discount = CRM_Utils_Money::format($discountAmount, $currency);
+      $newlabel = $label . " ({$fmt_discount})";
+    }
+    else {
+      // Percentage
+      $newamount = $amount - ($amount * ($discountAmount / 100));
+      $newlabel = $label . " ({$discountAmount}%)";
+    }
+
+    $newamount = round($newamount, 2);
+    // Return a formatted string for zero amount.
+    // @see http://issues.civicrm.org/jira/browse/CRM-12278
+    if ($newamount <= 0) {
+      $newamount = '0.00';
+    }
+    $discountAmount = $newamount - $amount;
+
+    return [$newamount, $discountAmount, $newlabel];
+  }
+
   /**
    * @param $form
    * @return array
@@ -78,17 +239,7 @@ class CRM_Eventinstallment_Utils {
     $rba = [];
 
     // parents can only register for events that allow it
-    try {
-      $fid = civicrm_api3('CustomField', 'getvalue', [
-        'custom_group_id' => 'Multireg',
-        'name' => 'Parents_Can_Register',
-        'return' => 'id',
-      ]);
-      $parents_can_register = !empty($eventDetails["custom_$fid"]);
-    }
-    catch (CiviCRM_API3_Exception $e) {
-      $parents_can_register = FALSE;
-    }
+    $parents_can_register = self::canParentRegisterforEvent($eventId);
 
     foreach ($relationships as $r) {
       @ list($rType, $dir) = explode("_", $r, 2);
@@ -131,7 +282,7 @@ class CRM_Eventinstallment_Utils {
     //make it a unique list of contacts
     $contactIds = array_unique($contactIds);
 
-    $returnField = ["display_name"];
+    $returnField = ["display_name", "group"];
     if (!empty($defaults['events_jcc_field'])) {
       $returnField[] = $defaults['events_jcc_field'];
     }
@@ -152,6 +303,17 @@ class CRM_Eventinstallment_Utils {
           'contact_is_deleted' => 0]
       );
       $group_members[$cid]['is_parent'] = FALSE;
+      if (!empty($defaults['events_group_contact'])) {
+        $groupContact = [];
+        if (!empty($group_members[$cid]['groups'])) {
+          $groupContact = explode(',', $group_members[$cid]['groups']);
+        }
+        $isGroupPresent = array_intersect($defaults['events_group_contact'], $groupContact);
+        $group_members[$cid]['is_paid'] = FALSE;
+        if (!empty($isGroupPresent)) {
+          $group_members[$cid]['is_paid'] = TRUE;
+        }
+      }
       if ($userID == $cid) {
         $group_members[$cid]['display_name'] .= ' (you)';
         $group_members[$cid]['is_parent'] = TRUE;
@@ -173,13 +335,16 @@ class CRM_Eventinstallment_Utils {
         }
       }
 
-
-      $resultMembership = civicrm_api3('Membership', 'get', [
+      $membershipParams = [
         'contact_id' => $cid,
         //'membership_type_id' => "1",
         'status_id' => ['IN' => ["New", "Current"]],
         'options' => ['sort' => "end_date desc", 'limit' => 1],
-      ]);
+      ];
+      if (!empty($defaults['events_membership_types'])) {
+        $membershipParams['membership_type_id'] = ['IN' => $defaults['events_membership_types']];
+      }
+      $resultMembership = civicrm_api3('Membership', 'get', $membershipParams);
       if (!empty($resultMembership['values'])) {
         $group_members[$cid]['membership'] = 'Yes';
         $group_members[$cid]['skip_registration'] = FALSE;

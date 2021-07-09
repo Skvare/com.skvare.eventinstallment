@@ -9,7 +9,7 @@
                     {assign var="currentUser" value='currentuser'}
                 {/if}
             <tr id='rowid{$contactID}' class="{cycle values="odd-row,even-row"}">
-                <td>{$form.$elementName.html} - {$contact.display_name}</td>
+                <td>{$form.$elementName.html} - {$form.$elementName.label}</td>
                 <td>{$contact.explanation}</td>
             </tr>
             {/if}
@@ -18,7 +18,7 @@
             {if ! $contact.is_parent}
                 {assign var="elementName" value=contacts_child_$contactID}
             <tr id='rowid{$contactID}' class="{cycle values="odd-row,even-row"}">
-                <td>{$form.$elementName.html} - {$contact.display_name}</td>
+                <td>{$form.$elementName.html} - {$form.$elementName.label}</td>
                 <td>{$contact.explanation}</td>
             </tr>
             {/if}
@@ -30,6 +30,7 @@
     currentContactID = '{/literal}{$currentContactID}{literal}';
     CRM.$(function($) {
         $('.crm-event-group-form-block').insertAfter('.additional_participants-section');
+        $('.additional_participants-section').hide();
     });
 
     function calculateAdditionalParticipant() {
@@ -56,8 +57,42 @@
         calculateAdditionalParticipant();
     });
     CRM.$('.currentUser').change(function() {
-        CRM.$("#_qf_Register_reload" ).trigger( "click" );
+        eventFeeBlocks();
     });
+    eventFeeBlocks();
+    function eventFeeBlocks() {
+        if (CRM.$(".currentUser:checked").length) {
+            CRM.$('fieldset#priceset').show();
+            CRM.$('div#priceset').show();
+            CRM.$('fieldset.payment_options-group').show();
+            CRM.$('div#billing-payment-block').show();
+            CRM.$('.payment_processor-section').show();
+        }
+        else {
+            //unset all price values
+            CRM.$('div#priceset input').each(function(){
+                if (CRM.$(this).prop('type') == 'text') {
+                    CRM.$(this).val('').trigger("change"); //text fields
+                }
+                if (!CRM.$(".currentUser:checked").length) {
+                    CRM.$(this).prop('checked', false).trigger("change"); //radio/checkbox
+                }
+            });
+
+            //select fields
+            CRM.$('div#priceset select').each(function(){
+                CRM.$(this).val(null).trigger("change");
+            });
+
+            //hide price blocks
+            CRM.$('fieldset#priceset').hide();
+            CRM.$('div#priceset').hide();
+            CRM.$('fieldset.payment_options-group').show();
+            CRM.$('div#billing-payment-block').show();
+            CRM.$('.payment_processor-section').show();
+
+        }
+    }
     calculateAdditionalParticipant();
 </script>
 {/literal}

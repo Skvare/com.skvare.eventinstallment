@@ -5,6 +5,13 @@
 <div class="crm-block crm-form-block">
 
   <table class="form-layout">
+      <tr>
+          <td class="label">{$form.events_id.label}</td>
+          <td>
+              {$form.events_id.html}
+              <div class="description"></div>
+          </td>
+      </tr>
     <tr>
       <td class="label">{$form.events_relationships.label}</td>
       <td>
@@ -12,34 +19,43 @@
         <div class="description">Select Relationship with appropriate direction to pull the list of contact in relationship with logged in user. This Contacts will be available for main listing page.</div>
       </td>
     </tr>
-      {*
     <tr>
-      <td class="label">{$form.events_jcc_discount.label}</td>
+      <td class="label">{$form.events_membership_types.label}</td>
       <td>
-          {$form.events_jcc_discount.html} - {$form.events_jcc_discount_type.html}<br/>
-        <div class="description">This discount would get applied on total amount get from regular discount like early bird and sibling disount. This will be only available if parent is Member of Jewish Community Center</div>
+          {$form.events_membership_types.html}
+        <div class="description">Contact those having above active membership type are only allowed for event signup.</div>
       </td>
     </tr>
-      *}
+      <tr>
+          <td class="label">{$form.events_group_contact.label}</td>
+          <td>
+              {$form.events_group_contact.html}
+              <div class="description">Contact those having above present in above group are only allowed for event signup.</div>
+          </td>
+      </tr>
     <tr>
-      <td class="label">{$form.events_specal_discount_group.label}</td>
+      <td class="label">{$form.events_special_discount_group.label}</td>
       <td>
-          {$form.events_specal_discount_group.html} - {$form.events_specal_discount.html} - {$form.events_specal_discount_type.html}<br/>
+          {$form.events_special_discount_group.html} - {$form.events_special_discount_amount.html} - {$form.events_special_discount_type.html}<br/>
         <div class="description">This discount would be available to the contact present in this group.</div>
       </td>
     </tr>
     <tr>
       <td class="label">{$form.events_financial_discount_group.label}</td>
       <td>
-          {$form.events_financial_discount_group.html}
-        <div class="description">This discount would be available to the contact present in this group.</div>
-      </td>
-    </tr>
-    <tr>
-      <td class="label">{$form.events_id.label}</td>
-      <td>
-          {$form.events_id.html}
-        <div class="description"></div>
+          <table>
+              <tr>
+                  <td>{ts}Select Group{/ts}</td>
+                  <td>{ts}Field for Discount Amount{/ts}</td>
+                  <td>{ts}Field for Discount Type{/ts}</td>
+              </tr>
+              <tr>
+                  <td>{$form.events_financial_discount_group.html}</td>
+                  <td>{$form.events_financial_discount_group_discount_amount.html}</td>
+                  <td>{$form.events_financial_discount_group_discount_type.html}</td>
+              </tr>
+          </table>
+        <div class="description">This discount would be available to the contact present in this group and have discount value present on parent contact for above mentioned field.</div>
       </td>
     </tr>
     <tr>

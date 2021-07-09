@@ -22,7 +22,7 @@
         <div class="label">&nbsp;</div>
         <div class="content">
             {$form.is_recur.html}
-            {$form.is_recur.label} <span id="amountperinstallment"></span> fee {ts}every{/ts}
+            {$form.is_recur.label} <span id="amountperinstallment1"></span>fee {ts}every{/ts}
             {if $is_recur_interval}
                 {$form.frequency_interval.html}
             {/if}

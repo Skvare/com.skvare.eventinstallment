@@ -263,6 +263,17 @@ function eventinstallment_civicrm_buildForm($formName, &$form) {
     $currentContactID = $form->getLoggedInUserContactID();
 
     $relatedContacts = CRM_Eventinstallment_Utils::relatedContactsListing($form);
+    //echo '<pre>'; print_r($relatedContacts); echo '</pre>';
+    $isPaid = TRUE;
+    if (!empty($defaults['events_group_contact'])) {
+      if ($relatedContacts[$currentContactID]['is_paid']) {
+        $isPaid = TRUE;
+      }
+      else {
+        $isPaid = FALSE;
+        $relatedContacts[$currentContactID]['explanation'] = 'Membership Fee not paid';
+      }
+    }
     foreach ($relatedContacts as $contactID => $contact) {
       if ($contact['is_parent']) {
         $attribute = [];
@@ -271,7 +282,7 @@ function eventinstallment_civicrm_buildForm($formName, &$form) {
         }
         $element = $form->add('checkbox', "contacts_parent_{$contactID}",
           $contact['display_name'], NULL, FALSE, $attribute);
-        if (!$contact['skip_registration'] && $contactID == $currentContactID) {
+        if ($isPaid && !$contact['skip_registration'] && $contactID == $currentContactID) {
           $setDefaultForParent = ["contacts_parent_{$contactID}" => 1];
           $form->setDefaults($setDefaultForParent);
         }
@@ -279,7 +290,7 @@ function eventinstallment_civicrm_buildForm($formName, &$form) {
       else {
         $element = $form->add('checkbox', "contacts_child_{$contactID}", $contact['display_name']);
       }
-      if ($contact['skip_registration']) {
+      if ($contact['skip_registration'] || !$isPaid) {
         $element->freeze();
       }
     }
@@ -303,12 +314,19 @@ function eventinstallment_civicrm_buildForm($formName, &$form) {
     $contactID = $finalContactList[$additionalPageNumber];
     $data = CRM_Eventinstallment_Utils::getContactData(array_keys($form->_fields), $contactID);
     $form->setDefaults($data);
+    CRM_Core_Region::instance('page-body')->add(
+      ['script' => "cj('button[name=_qf_Participant_" . $additionalPageNumber . "_next_skip]').hide();"]);
   }
   elseif (in_array($formName, ['CRM_Event_Form_Registration_Confirm', 'CRM_Event_Form_Registration_ThankYou'])) {
     $session = CRM_Core_Session::singleton();
+    if ($formName == 'CRM_Event_Form_Registration_Confirm') {
+      CRM_Eventinstallment_Utils::getAdditionalDiscount($form);
+    }
+
     $params = $form->getVar('_params');
     $totalAmount = $form->getVar('_totalAmount');
-
+    $lineItem = $form->getVar('_lineItem');
+    $_amount = $form->getVar('_amount');
     if (!empty($params['0']['is_recur'])) {
       CRM_Core_Region::instance('page-body')->add(['template' => 'CRM/Eventinstallment/SummaryBlock.tpl']);
       $template = CRM_Core_Smarty::singleton();
@@ -342,34 +360,32 @@ function eventinstallment_civicrm_validateForm($formName, &$fields, &$files, &$f
   }
   elseif ($formName == 'CRM_Event_Form_Registration_Register') {
     $eventId = $form->getVar('_eventId');
-    $result = civicrm_api3('Event', 'get', [
-      'id' => $eventId,
-    ]);
-    $eventDetails = $result['values'][$eventId];
-
-    // parents can only register for events that allow it
-    try {
-      $fid = civicrm_api3('CustomField', 'getvalue', [
-        'custom_group_id' => 'Multireg',
-        'name' => 'Parents_Can_Register',
-        'return' => 'id',
-      ]);
-      $parents_can_register = !empty($eventDetails["custom_$fid"]);
-    }
-    catch (CiviCRM_API3_Exception $e) {
-      $parents_can_register = FALSE;
-    }
-    if (!$parents_can_register) {
-      $childContacts = [];
-      foreach ($fields as $k => $v) {
-        if (strpos($k, 'contacts_child_') === 0) {
-          [, , $cid] = explode('_', $k);
-          $childContacts[$cid] = $cid;
-        }
+    $parents_can_register = CRM_Eventinstallment_Utils::canParentRegisterforEvent($eventId);
+    $currentContactID = $form->getLoggedInUserContactID();
+    $childContacts = $parentContact = [];
+    foreach ($fields as $k => $v) {
+      if (strpos($k, 'contacts_child_') === 0) {
+        [, , $cid] = explode('_', $k);
+        $childContacts[$cid] = $cid;
       }
+      elseif (strpos($k, 'contacts_parent_') === 0) {
+        [, , $cid] = explode('_', $k);
+        $parentContact[$cid] = $cid;
+      }
+    }
+
+    if (!$parents_can_register || ($parents_can_register && empty($parentContact[$currentContactID]))) {
       if (empty($childContacts)) {
         $errors['additional_participants'] = ts('Select at least one child');
       }
+      $session = CRM_Core_Session::singleton();
+      $session->set('event_skip_main_parent', TRUE);
+      foreach ($form->_priceSet['fields'] as $fid => $val) {
+        $form->setElementError('price_' . $fid, NULL);
+        $fields['price_' . $fid] = 0;
+      }
+      $form->_lineItem = [];
+      $form->setElementError('_qf_default', NULL);
     }
   }
 }
@@ -516,22 +532,7 @@ function eventinstallment_civicrm_buildAmount($pageType, &$form, &$amounts) {
     }
     else {
       $childNumber = 0;
-      try {
-
-        $result = civicrm_api3('Event', 'get', [
-          'id' => $eid,
-        ]);
-        $eventDetails = $result['values'][$eid];
-        $fid = civicrm_api3('CustomField', 'getvalue', [
-          'custom_group_id' => 'Multireg',
-          'name' => 'Parents_Can_Register',
-          'return' => 'id',
-        ]);
-        $parents_can_register = !empty($eventDetails["custom_$fid"]);
-      }
-      catch (CiviCRM_API3_Exception $e) {
-        $parents_can_register = FALSE;
-      }
+      $parents_can_register = CRM_Eventinstallment_Utils::canParentRegisterforEvent($eid);
 
       if (!$parents_can_register) {
         $amount = 0;
@@ -540,7 +541,6 @@ function eventinstallment_civicrm_buildAmount($pageType, &$form, &$amounts) {
         $session->set('parents_not_allowed_contact_id', $currentContactID);
       }
     }
-    //var_dump($parents_can_register);
 
     $psid = $form->get('priceSetId');
     $getPriceSetsInfo = CRM_Eventinstallment_Utils::getPriceSetsInfo($psid);
@@ -584,6 +584,7 @@ function eventinstallment_civicrm_buildAmount($pageType, &$form, &$amounts) {
           $data = 'Label : ' . $option['label'] . ' -  ' . $defaultFee . ' -> ' . $sellAmount . ' : discount Amount :' . $discountAmount;
           echo '<pre>';echo $data;echo '</pre>';
           */
+
           $option['amount'] = $sellAmount;
 
           // Re-calculate VAT/Sales TAX on discounted amount.

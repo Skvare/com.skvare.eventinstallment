@@ -26,7 +26,7 @@ class CRM_Eventinstallment_Form_Setting extends CRM_Core_Form {
     $this->_id = CRM_Utils_Request::retrieve('event_id', 'Positive', $this);
   }
   public function buildQuickForm() {
-
+    $groups = ['' => '-- select --'] + CRM_Core_PseudoConstant::nestedGroup();
 
     $this->add('select', 'events_relationships', 'Relationshiop type',
       CRM_Eventinstallment_Utils::relationshipTypes(),
@@ -37,6 +37,14 @@ class CRM_Eventinstallment_Form_Setting extends CRM_Core_Form {
       CRM_Eventinstallment_Utils::getOperators();
 
     $attribute = ['class' => 'crm-select2', 'placeholder' => ts('- any -')];
+
+    $membershipTypes = CRM_Memberships_Helper::membershipTypeCurrentDomain();
+    $this->add('select', 'events_membership_types', 'Membership Type to Filter Contact',
+      $membershipTypes, FALSE, $attribute + ['multiple' => 'multiple']);
+
+    $this->add('select', 'events_group_contact', ts('Contact in this Grouop allowed to Register for Event.'),
+      $groups, FALSE, $attribute + ['multiple' => 'multiple']);
+
     /*
     $this->add('text', "events_jcc_discount", ts('JCC Discount'), ['size' => 20]);
     $this->add('select', 'events_jcc_discount_type', ts('JCC Discount Type'),
@@ -46,12 +54,11 @@ class CRM_Eventinstallment_Form_Setting extends CRM_Core_Form {
       ],
       FALSE, $attribute);
     */
-    $groups = ['' => '-- select --'] + CRM_Core_PseudoConstant::nestedGroup();
-    $this->add('select', 'events_specal_discount_group', ts('Special Discount'),
+    $this->add('select', 'events_special_discount_group', ts('Special Discount Group'),
       $groups, FALSE, $attribute);
-    $this->add('text', "events_specal_discount", ts('Specail Discount'), ['size' =>
+    $this->add('text', "events_special_discount_amount", ts('Special Discount Amount'), ['size' =>
       20]);
-    $this->add('select', 'events_specal_discount_type', ts('JCC Discount Type'),
+    $this->add('select', 'events_special_discount_type', ts('Special Discount Type'),
       [
         1 => E::ts('Percent'),
         2 => E::ts('Fixed Amount'),
@@ -60,6 +67,11 @@ class CRM_Eventinstallment_Form_Setting extends CRM_Core_Form {
 
     $this->add('select', 'events_financial_discount_group', ts('Financial assistance/discount'),
       $groups, FALSE, $attribute);
+    $this->add('select', "events_financial_discount_group_discount_amount",
+      "Field for Amount",
+      $civicrmFields, FALSE, ['class' => 'crm-select2', 'placeholder' => ts('- any -')]);
+    $this->add('select', "events_financial_discount_group_discount_type", "Field for Discount Type",
+      $civicrmFields, FALSE, ['class' => 'crm-select2', 'placeholder' => ts('- any -')]);
 
     $contributionPage = CRM_Contribute_PseudoConstant::contributionPage();
     $events = CRM_Event_BAO_Event::getEvents(1);
@@ -169,7 +181,7 @@ class CRM_Eventinstallment_Form_Setting extends CRM_Core_Form {
    */
   public function setDefaultValues() {
     $defaults = CRM_Eventinstallment_Utils::getSettingsConfig($this->_id);
-
+    //echo '<pre>';print_r($defaults); echo '</pre>';
     return $defaults;
   }
 
