@@ -319,9 +319,9 @@ function eventinstallment_civicrm_buildForm($formName, &$form) {
   }
   elseif (in_array($formName, ['CRM_Event_Form_Registration_Confirm', 'CRM_Event_Form_Registration_ThankYou'])) {
     $session = CRM_Core_Session::singleton();
-    if ($formName == 'CRM_Event_Form_Registration_Confirm') {
-      CRM_Eventinstallment_Utils::getAdditionalDiscount($form);
-    }
+    //if ($formName == 'CRM_Event_Form_Registration_Confirm') {
+    CRM_Eventinstallment_Utils::getAdditionalDiscount($form);
+    //}
 
     $params = $form->getVar('_params');
     $totalAmount = $form->getVar('_totalAmount');
@@ -439,9 +439,7 @@ function eventinstallment_civicrm_postProcess($formName, &$form) {
         'return' => "id",
         'name' => "not_attending",
       ]);
-      $is_Member = CRM_Core_DAO::setFieldValue('CRM_Event_DAO_Participant',
-        $form->getVar('_participantId'), 'status_id', $result);
-
+      CRM_Core_DAO::setFieldValue('CRM_Event_DAO_Participant', $form->getVar('_participantId'), 'status_id', $result);
     }
   }
 }
