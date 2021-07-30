@@ -360,6 +360,10 @@ function eventinstallment_civicrm_validateForm($formName, &$fields, &$files, &$f
   }
   elseif ($formName == 'CRM_Event_Form_Registration_Register') {
     $eventId = $form->getVar('_eventId');
+    $defaults = CRM_Eventinstallment_Utils::getSettingsConfig($eventId);
+    if (!in_array($eventId, (array)$defaults['events_id'])) {
+      return;
+    }
     $parents_can_register = CRM_Eventinstallment_Utils::canParentRegisterforEvent($eventId);
     $currentContactID = $form->getLoggedInUserContactID();
     $childContacts = $parentContact = [];
