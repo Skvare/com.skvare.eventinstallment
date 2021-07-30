@@ -783,7 +783,7 @@ class CRM_Eventinstallment_Utils {
                 pf.label as pf_label,
                 ps.title as ps_label
       FROM      civicrm_price_field_value as pfv
-      LEFT JOIN civicrm_price_field as pf on (pf.id = pfv.price_field_id)
+      LEFT JOIN civicrm_price_field as pf on (pf.id = pfv.price_field_id AND pf.is_active  = 1 AND pfv.is_active = 1)
       LEFT JOIN civicrm_price_set as ps on (ps.id = pf.price_set_id AND ps.is_active = 1)
       INNER JOIN {$psTableName} as pse on (ps.id = pse.price_set_id)
       WHERE  {$additionalWhere}
