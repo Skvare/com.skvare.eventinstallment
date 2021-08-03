@@ -5,14 +5,14 @@
             // show block in right order
             var moneyFormat    = '{/literal}{$moneyFormat}{literal}';
             CRM.$('#event_recurring_block').insertAfter('.price_set-section');
-            cj('#pricevalue, #installments, #is_recur').change(function() {
-                var total_amount_tmp =  cj('#pricevalue').data('raw-total');
-                if (total_amount_tmp && cj('#installments').val() && cj('#is_recur:checked').length) {
-                    //var installments = cj('#installments').val();
-                    var installments = cj('#installments :selected').val()
+            CRM.$('#pricevalue, #installments, #is_recur').change(function() {
+                var total_amount_tmp =  CRM.$('#pricevalue').data('raw-total');
+                if (total_amount_tmp && CRM.$('#installments').val() && CRM.$('#is_recur:checked').length) {
+                    //var installments = CRM.$('#installments').val();
+                    var installments = CRM.$('#installments :selected').val()
                     var newAmount = total_amount_tmp / installments;
                     var newAmountFormatted = CRM.formatMoney(newAmount, false, moneyFormat);
-                    cj('#amountperinstallment').html(newAmountFormatted);
+                    CRM.$('#amountperinstallment').html(newAmountFormatted);
                 }
             });
         });

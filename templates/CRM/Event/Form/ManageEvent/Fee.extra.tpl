@@ -19,9 +19,9 @@
     });
     function checked_payment_processors() {
         var ids = [];
-        $('.crm-event-manage-fee-form-block-payment_processor input[type="checkbox"]').each(function () {
-            if ($(this).prop('checked')) {
-                var id = $(this).attr('id').split('_')[2];
+        CRM.$('.crm-event-manage-fee-form-block-payment_processor input[type="checkbox"]').each(function () {
+            if (CRM.$(this).prop('checked')) {
+                var id = CRM.$(this).attr('id').split('_')[2];
                 ids.push(id);
             }
         });
@@ -30,20 +30,20 @@
 
     function showRecurring( paymentProcessorIds ) {
         var display = true;
-        cj.each(paymentProcessorIds, function (k, id) {
-            if (cj.inArray(id, paymentProcessorMapper) == -1) {
+        CRM.$.each(paymentProcessorIds, function (k, id) {
+            if (CRM.$.inArray(id, paymentProcessorMapper) == -1) {
                 display = false;
             }
         });
 
         if (display) {
-            cj('#recurringContribution').show();
+            CRM.$('#recurringContribution').show();
         } else {
-            if (cj('#is_recur').prop('checked')) {
-                cj('#is_recur').prop('checked', false);
-                cj('#recurFields').hide();
+            if (CRM.$('#is_recur').prop('checked')) {
+                CRM.$('#is_recur').prop('checked', false);
+                CRM.$('#recurFields').hide();
             }
-            cj('#recurringContribution').hide();
+            CRM.$('#recurringContribution').hide();
         }
     }
 </script>
