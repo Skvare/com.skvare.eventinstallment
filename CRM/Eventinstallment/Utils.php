@@ -293,12 +293,24 @@ class CRM_Eventinstallment_Utils {
     // Get all related Contacts for this user
     foreach ($contactIds as $cid) {
       // only look for parent / child relationship
-      $group_members[$cid] = civicrm_api("Contact", "getsingle", [
-          'return' => $returnField,
-          'version' => 3,
-          'contact_id' => $cid,
-          'contact_is_deleted' => 0]
-      );
+      try {
+        $contactDataResult = civicrm_api("Contact", "get", [
+            'return' => $returnField,
+            'version' => 3,
+            'id' => $cid,
+            'is_deleted' => 0]
+        );
+        if (!empty($contactDataResult['values'])) {
+          $group_members[$cid] = $contactDataResult['values'][$cid];
+        }
+        else {
+          continue;
+        }
+      }
+      catch (CiviCRM_API3_Exception $exception) {
+        continue;
+      }
+
       $group_members[$cid]['is_parent'] = FALSE;
       if (!empty($defaults['events_group_contact'])) {
         $groupContact = [];
