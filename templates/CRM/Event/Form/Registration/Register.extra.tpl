@@ -5,6 +5,7 @@
             // show block in right order
             var moneyFormat    = '{/literal}{$moneyFormat}{literal}';
             CRM.$('#event_recurring_block').insertAfter('.price_set-section');
+            CRM.$('#_qf_Register_upload-bottom').html('Continue');
             CRM.$('#pricevalue, #installments, #is_recur').change(function() {
                 var total_amount_tmp =  CRM.$('#pricevalue').data('raw-total');
                 if (total_amount_tmp && CRM.$('#installments').val() && CRM.$('#is_recur:checked').length) {
