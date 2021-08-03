@@ -403,6 +403,7 @@ function eventinstallment_civicrm_postProcess($formName, &$form) {
     if (!empty($form->getVar('_id'))) {
       $eventID = $form->getVar('_id');
       $submit['recur_frequency_unit'] = implode(CRM_Core_DAO::VALUE_SEPARATOR, array_keys($submit['recur_frequency_unit']));
+      $submit['recur_frequency_unit'] = $submit['recur_frequency_unit'] ?? '';
       $submit['is_recur_interval'] = $submit['is_recur_interval'] ?? 0;
       $submit['is_recur_installments'] = $submit['is_recur_installments'] ?? 0;
       $submit['is_recur'] = $submit['is_recur'] ?? 0;
