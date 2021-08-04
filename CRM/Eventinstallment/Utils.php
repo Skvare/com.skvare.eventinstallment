@@ -167,6 +167,11 @@ class CRM_Eventinstallment_Utils {
       }
     }
 
+    if ($session->get('parents_not_allowed')) {
+      if (empty($lineItem[0])) {
+        unset($lineItem[0]);
+      }
+    }
     $form->setVar('_lineItem', $lineItem);
     $form->set('_lineItem', $lineItem);
     $form->assign('lineItem', $lineItem);
