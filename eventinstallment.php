@@ -319,14 +319,17 @@ function eventinstallment_civicrm_buildForm($formName, &$form) {
   }
   elseif (in_array($formName, ['CRM_Event_Form_Registration_Confirm', 'CRM_Event_Form_Registration_ThankYou'])) {
     $session = CRM_Core_Session::singleton();
-    //if ($formName == 'CRM_Event_Form_Registration_Confirm') {
-    CRM_Eventinstallment_Utils::getAdditionalDiscount($form);
-    //}
+    if ($formName == 'CRM_Event_Form_Registration_Confirm') {
+      CRM_Eventinstallment_Utils::getAdditionalDiscount($form);
+    }
+    else {
+      CRM_Eventinstallment_Utils::getAdditionalDiscount($form, TRUE);
+    }
+
 
     $params = $form->getVar('_params');
     $totalAmount = $form->getVar('_totalAmount');
-    $lineItem = $form->getVar('_lineItem');
-    $_amount = $form->getVar('_amount');
+    //$_amount = $form->getVar('_amount');
     if (!empty($params['0']['is_recur'])) {
       CRM_Core_Region::instance('page-body')->add(['template' => 'CRM/Eventinstallment/SummaryBlock.tpl']);
       $template = CRM_Core_Smarty::singleton();
@@ -338,6 +341,15 @@ function eventinstallment_civicrm_buildForm($formName, &$form) {
       $installmentAmount = $totalAmount / $params['0']['installments'];
       $installmentAmount = CRM_Utils_Money::format($installmentAmount);
       $template->assign('installmentAmount', $installmentAmount);
+    }
+    // To avoid confusion, changing removing parent name as first participant
+    // and chaning the labels too.
+    if ($session->get('parents_not_allowed')) {
+      $template = CRM_Core_Smarty::singleton();
+      $part = $template->get_template_vars('part');
+      $part[0]['info'] = ' ( Parent will be register as Non Attending Participant.)';
+      $template->assign('part', $part);
+      CRM_Core_Region::instance('page-body')->add(['template' => 'CRM/Eventinstallment/LineItem.tpl']);
     }
 
     if ($partialPaymentAmount = $session->get('partialPaymentAmount', 'partialPayment')) {
@@ -422,7 +434,6 @@ function eventinstallment_civicrm_postProcess($formName, &$form) {
         is_recur = %4
       WHERE id = $eventID
       ";
-
       CRM_Core_DAO::executeQuery($query, $param);
     }
   }

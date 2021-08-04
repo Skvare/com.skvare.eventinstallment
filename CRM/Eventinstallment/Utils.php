@@ -71,7 +71,7 @@ class CRM_Eventinstallment_Utils {
   /**
    * @param $form
    */
-  public static function getAdditionalDiscount($form) {
+  public static function getAdditionalDiscount($form, $noCal = FALSE) {
     $session = CRM_Core_Session::singleton();
     $params = $form->getVar('_params');
     $totalAmount = $form->getVar('_totalAmount');
@@ -136,7 +136,9 @@ class CRM_Eventinstallment_Utils {
         $item['label'] = $newLabel;
         $item['entity_table'] = "civicrm_contribution";
         $lineItem[0][] = $item;
-        $totalAmount = $totalAmount + $discountAmount;
+        if (!$noCal) {
+          $totalAmount = $totalAmount + $discountAmount;
+        }
         $_amount[] = ['amount' => $discountAmount, 'label' => $newLabel];
       }
     }
@@ -158,12 +160,15 @@ class CRM_Eventinstallment_Utils {
         $item['label'] = $newLabel;
         $item['entity_table'] = "civicrm_contribution";
         $lineItem[0][] = $item;
-        $totalAmount = $totalAmount + $discountAmount;
+        if (!$noCal) {
+          $totalAmount = $totalAmount + $discountAmount;
+        }
         $_amount[] = ['amount' => $discountAmount, 'label' => $newLabel];
       }
     }
 
     $form->setVar('_lineItem', $lineItem);
+    $form->set('_lineItem', $lineItem);
     $form->assign('lineItem', $lineItem);
     $form->setVar('_amount', $_amount);
     $form->assign('amounts', $_amount);
