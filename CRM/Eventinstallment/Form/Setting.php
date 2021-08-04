@@ -74,7 +74,7 @@ class CRM_Eventinstallment_Form_Setting extends CRM_Core_Form {
       $civicrmFields, FALSE, ['class' => 'crm-select2', 'placeholder' => ts('- any -')]);
 
     $contributionPage = CRM_Contribute_PseudoConstant::contributionPage();
-    $events = CRM_Event_BAO_Event::getEvents(1);
+    $events = CRM_Event_BAO_Event::getEvents(1, NULL, TRUE, FALSE);
     $this->add('select', 'events_id', ts('Event Name'), ['' => ts('- select -')] + $events, TRUE, $attribute);
     $this->add('select', "events_jcc_field", "JCC Field Name",
       $civicrmFields, FALSE, ['class' => 'crm-select2', 'placeholder' => ts('- any -')]);

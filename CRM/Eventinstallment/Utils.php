@@ -723,7 +723,7 @@ class CRM_Eventinstallment_Utils {
    * @return array
    */
   public static function getAllSettingConfig() {
-    $events = CRM_Event_BAO_Event::getEvents(1);
+    $events = CRM_Event_BAO_Event::getEvents(1, NULL, TRUE, FALSE);
     $domainID = CRM_Core_Config::domainID();
     $sql = "SELECT value FROM `civicrm_setting` WHERE `name` LIKE 'events_config_{$domainID}_%'";
     $dao = CRM_Core_DAO::executeQuery($sql);
