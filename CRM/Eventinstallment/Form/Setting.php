@@ -83,33 +83,35 @@ class CRM_Eventinstallment_Form_Setting extends CRM_Core_Form {
     $this->assign('num_disount', self::NUM_DISCOUNT);
     if (!empty($defaults['events_id'])) {
       $priceSetId = CRM_Price_BAO_PriceSet::getFor('civicrm_event', $defaults['events_id']);
-      $fields = CRM_Eventinstallment_Utils::getPriceSetsOptions($priceSetId);
-      $this->assign('price_fields', $fields);
-      foreach ($fields as $fieldID => $fieldTitle) {
-        if (!is_numeric($fieldID)) {
-          continue;
-        }
-        $this->add('text', "events_rule[$fieldID][regular]", "Default Fee", [], FALSE);
+      if ($priceSetId) {
+        $fields = CRM_Eventinstallment_Utils::getPriceSetsOptions($priceSetId);
+        $this->assign('price_fields', $fields);
+        foreach ($fields as $fieldID => $fieldTitle) {
+          if (!is_numeric($fieldID)) {
+            continue;
+          }
+          $this->add('text', "events_rule[$fieldID][regular]", "Default Fee", [], FALSE);
 
-        for ($i = 1; $i <= self::NUM_DISCOUNT; $i++) {
-          $this->add('text', "events_rule[$fieldID][$i][discount_name]", ts('Discount Name'), ['size' => 20, 'placeholder' => ts('Discount name')]);
-          $this->add('datepicker', "events_rule[$fieldID][$i][discount_start_date]", ts('Discount Start Date'), [], FALSE, ['time' => TRUE]);
-          $this->add('datepicker', "events_rule[$fieldID][$i][discount_end_date]", ts('Discount End Date'), [], FALSE, ['time' => TRUE]);
+          for ($i = 1; $i <= self::NUM_DISCOUNT; $i++) {
+            $this->add('text', "events_rule[$fieldID][$i][discount_name]", ts('Discount Name'), ['size' => 20, 'placeholder' => ts('Discount name')]);
+            $this->add('datepicker', "events_rule[$fieldID][$i][discount_start_date]", ts('Discount Start Date'), [], FALSE, ['time' => TRUE]);
+            $this->add('datepicker', "events_rule[$fieldID][$i][discount_end_date]", ts('Discount End Date'), [], FALSE, ['time' => TRUE]);
 
-          $this->add('text', "events_rule[$fieldID][$i][child_1]", ts('Child 1'), ['size' => 5]);
-          $this->add('text', "events_rule[$fieldID][$i][child_2]", ts('Child 2'), ['size' => 5]);
-          $this->add('text', "events_rule[$fieldID][$i][child_3]", ts('Child 3'), ['size' => 5]);
-          $this->add('text', "events_rule[$fieldID][$i][child_4]", ts('Child 4'), ['size' => 5]);
+            $this->add('text', "events_rule[$fieldID][$i][child_1]", ts('Child 1'), ['size' => 5]);
+            $this->add('text', "events_rule[$fieldID][$i][child_2]", ts('Child 2'), ['size' => 5]);
+            $this->add('text', "events_rule[$fieldID][$i][child_3]", ts('Child 3'), ['size' => 5]);
+            $this->add('text', "events_rule[$fieldID][$i][child_4]", ts('Child 4'), ['size' => 5]);
 
-          $this->add('text', "events_rule[$fieldID][$i][child_jcc_1]", ts('JCC Child 1'), ['size' => 5]);
-          $this->add('text', "events_rule[$fieldID][$i][child_jcc_2]", ts('JCC Child 2'), ['size' => 5]);
-          $this->add('text', "events_rule[$fieldID][$i][child_jcc_3]", ts('JCC Child 3'), ['size' => 5]);
-          $this->add('text', "events_rule[$fieldID][$i][child_jcc_4]", ts('JCC Child 4'), ['size' => 5]);
+            $this->add('text', "events_rule[$fieldID][$i][child_jcc_1]", ts('JCC Child 1'), ['size' => 5]);
+            $this->add('text', "events_rule[$fieldID][$i][child_jcc_2]", ts('JCC Child 2'), ['size' => 5]);
+            $this->add('text', "events_rule[$fieldID][$i][child_jcc_3]", ts('JCC Child 3'), ['size' => 5]);
+            $this->add('text', "events_rule[$fieldID][$i][child_jcc_4]", ts('JCC Child 4'), ['size' => 5]);
 
-          $this->add('text', "events_rule[$fieldID][$i][sibling_1]", ts('Sibling 1'), ['size' => 5]);
-          $this->add('text', "events_rule[$fieldID][$i][sibling_2]", ts('Sibling 2'), ['size' => 5]);
-          $this->add('text', "events_rule[$fieldID][$i][sibling_3]", ts('Sibling 3'), ['size' => 5]);
-          $this->add('text', "events_rule[$fieldID][$i][sibling_4]", ts('Sibling 4'), ['size' => 5]);
+            $this->add('text', "events_rule[$fieldID][$i][sibling_1]", ts('Sibling 1'), ['size' => 5]);
+            $this->add('text', "events_rule[$fieldID][$i][sibling_2]", ts('Sibling 2'), ['size' => 5]);
+            $this->add('text', "events_rule[$fieldID][$i][sibling_3]", ts('Sibling 3'), ['size' => 5]);
+            $this->add('text', "events_rule[$fieldID][$i][sibling_4]", ts('Sibling 4'), ['size' => 5]);
+          }
         }
       }
     }
