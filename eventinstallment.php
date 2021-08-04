@@ -259,8 +259,19 @@ function eventinstallment_civicrm_buildForm($formName, &$form) {
 
       return;
     }
-    CRM_Eventinstallment_Utils::_add_reload_textfield($form);
     $currentContactID = $form->getLoggedInUserContactID();
+
+    if (!$form->_values['event']['is_monetary']) {
+      $parents_can_register = CRM_Eventinstallment_Utils::canParentRegisterforEvent($eid);
+
+      if (!$parents_can_register) {
+        $amount = 0;
+        $session = CRM_Core_Session::singleton();
+        $session->set('parents_not_allowed', TRUE);
+        $session->set('parents_not_allowed_contact_id', $currentContactID);
+      }
+    }
+    CRM_Eventinstallment_Utils::_add_reload_textfield($form);
 
     $relatedContacts = CRM_Eventinstallment_Utils::relatedContactsListing($form);
     //echo '<pre>'; print_r($relatedContacts); echo '</pre>';
@@ -308,6 +319,21 @@ function eventinstallment_civicrm_buildForm($formName, &$form) {
     $defaults = CRM_Eventinstallment_Utils::getSettingsConfig($eid);
     if (!in_array($eid, (array)$defaults['events_id'])) {
       return;
+    }
+    if (!$form->_values['event']['is_monetary']) {
+      [$finalContactList, $childContacts, $parentContacts] = CRM_Eventinstallment_Utils::contactSequenceForRegistration($form);
+      [$dontCare, $additionalPageNumber] = explode('_', $form->getVar('_name'));
+      $contactID = $finalContactList[$additionalPageNumber];
+      $childNumber = 0;
+      if (in_array($contactID, $childContacts)) {
+        $childNumber = CRM_Utils_Array::key($contactID, $childContacts);
+      }
+      $_params = $form->get('params');
+      $_name = $form->getVar('_name');
+      $participantNo = substr($_name, 12);
+      $participantCnt = $participantNo;
+      $participantTot = $_params[0]['additional_participants'];
+      CRM_Utils_System::setTitle(ts('Register Child %1 of %2', [1 => $participantCnt, 2 => $participantTot]));
     }
     [$finalContactList, $childContacts, $parentContacts] = CRM_Eventinstallment_Utils::contactSequenceForRegistration($form);
     [$dontCare, $additionalPageNumber] = explode('_', $form->getVar('_name'));
@@ -394,6 +420,9 @@ function eventinstallment_civicrm_validateForm($formName, &$fields, &$files, &$f
       $errors['additional_participants'] = ts('Select at least one child');
     }
     if (!$parents_can_register || ($parents_can_register && empty($parentContact[$currentContactID]))) {
+      if (!$form->_values['event']['is_monetary']) {
+        return;
+      }
       $session = CRM_Core_Session::singleton();
       $session->set('event_skip_main_parent', TRUE);
       foreach ($form->_priceSet['fields'] as $fid => $val) {
@@ -444,10 +473,6 @@ function eventinstallment_civicrm_postProcess($formName, &$form) {
       return;
     }
     $session = CRM_Core_Session::singleton();
-    $session->set('event_contributionID', $form->_values['contributionId']);
-    $session = CRM_Core_Session::singleton();
-    $eventContributionID = $session->get('event_contributionID');
-
     if ($session->get('parents_not_allowed') && $form->getVar('_participantId')) {
       //$parentContactID = $session->get('parents_not_allowed_contact_id');
       $form->getVar('_participantId');
@@ -523,7 +548,7 @@ function eventinstallment_civicrm_buildAmount($pageType, &$form, &$amounts) {
     }
     $eid = $form->getVar('_eventId');
     $defaults = CRM_Eventinstallment_Utils::getSettingsConfig($eid);
-    if (!in_array($eid, (array)$defaults['events_id'])) {
+    if (!in_array($eid, (array)$defaults['events_id']) || empty($defaults['events_rule'])) {
       return;
     }
 

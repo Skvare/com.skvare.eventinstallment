@@ -108,7 +108,7 @@ class CRM_Eventinstallment_Utils {
     if (!empty($contactResult['groups'])) {
       $groupContact = explode(',', $contactResult['groups']);
     }
-    if (!array_key_exists('0', $lineItem)) {
+    if (is_array($lineItem) && !array_key_exists('0', $lineItem)) {
       array_unshift($lineItem, []);
     }
     $originalTotalAmount = $totalAmount;
