@@ -390,10 +390,10 @@ function eventinstallment_civicrm_validateForm($formName, &$fields, &$files, &$f
       }
     }
 
+    if (empty($childContacts)) {
+      $errors['additional_participants'] = ts('Select at least one child');
+    }
     if (!$parents_can_register || ($parents_can_register && empty($parentContact[$currentContactID]))) {
-      if (empty($childContacts)) {
-        $errors['additional_participants'] = ts('Select at least one child');
-      }
       $session = CRM_Core_Session::singleton();
       $session->set('event_skip_main_parent', TRUE);
       foreach ($form->_priceSet['fields'] as $fid => $val) {
@@ -537,6 +537,13 @@ function eventinstallment_civicrm_buildAmount($pageType, &$form, &$amounts) {
       if (in_array($contactID, $childContacts)) {
         $childNumber = CRM_Utils_Array::key($contactID, $childContacts);
       }
+      $_params = $form->get('params');
+      $_name = $form->getVar('_name');
+      $participantNo = substr($_name, 12);
+      $participantCnt = $participantNo;
+      $participantTot = $_params[0]['additional_participants'];
+      CRM_Utils_System::setTitle(ts('Register Child %1 of %2', [1 => $participantCnt, 2 => $participantTot]));
+
       /*
       echo '<pre>$contactID : '; print_r($contactID); echo '</pre>';
       echo '<pre>$childNumber : '; print_r($childNumber); echo '</pre>';
