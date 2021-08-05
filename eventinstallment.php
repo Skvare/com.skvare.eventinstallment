@@ -664,3 +664,19 @@ function eventinstallment_civicrm_navigationMenu(&$menu) {
   ]);
   _eventinstallment_civix_navigationMenu($menu);
 }
+
+function eventinstallment_civicrm_alterTemplateFile($formName, $form, $context, &$tplName) {
+  if ($formName == 'CRM_Event_Form_Registration_Register' && $form->getVar('_eventId')) {
+    $defaults = CRM_Eventinstallment_Utils::getSettingsConfig($form->getVar('_eventId'));
+    if (in_array($eid, (array)$defaults['events_id'])) {
+      if (!CRM_Utils_System::isUserLoggedIn()) {
+        $config = CRM_Core_Config::singleton();
+        $destination = $config->userSystem->getLoginDestination($form);
+        $loginURL = $config->userSystem->getLoginURL($destination);
+        $template = CRM_Core_Smarty::singleton();
+        $template->assign('loginURL', $loginURL);
+        $tplName = 'AccessDenied.tpl';
+      }
+    }
+  }
+}
