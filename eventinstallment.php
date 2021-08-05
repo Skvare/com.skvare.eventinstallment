@@ -312,7 +312,9 @@ function eventinstallment_civicrm_buildForm($formName, &$form) {
     }
     $session->set('is_jcc_member', $isJccMember);
     $form->assign('currentContactID', $currentContactID);
-    CRM_Core_Region::instance('page-body')->add(['template' => 'CRM/Eventinstallment/ContactListing.tpl']);
+    if (CRM_Utils_System::isUserLoggedIn()) {
+      CRM_Core_Region::instance('page-body')->add(['template' => 'CRM/Eventinstallment/ContactListing.tpl']);
+    }
   }
   elseif($formName == 'CRM_Event_Form_Registration_AdditionalParticipant') {
     $eid = $form->getVar('_eventId');
@@ -668,7 +670,7 @@ function eventinstallment_civicrm_navigationMenu(&$menu) {
 function eventinstallment_civicrm_alterTemplateFile($formName, $form, $context, &$tplName) {
   if ($formName == 'CRM_Event_Form_Registration_Register' && $form->getVar('_eventId')) {
     $defaults = CRM_Eventinstallment_Utils::getSettingsConfig($form->getVar('_eventId'));
-    if (in_array($eid, (array)$defaults['events_id'])) {
+    if (in_array($form->getVar('_eventId'), (array)$defaults['events_id'])) {
       if (!CRM_Utils_System::isUserLoggedIn()) {
         $config = CRM_Core_Config::singleton();
         $destination = $config->userSystem->getLoginDestination($form);
