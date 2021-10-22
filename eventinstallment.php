@@ -359,7 +359,6 @@ function eventinstallment_civicrm_buildForm($formName, &$form) {
     $totalAmount = $form->getVar('_totalAmount');
     //$_amount = $form->getVar('_amount');
     if (!empty($params['0']['is_recur'])) {
-      CRM_Core_Region::instance('page-body')->add(['template' => 'CRM/Eventinstallment/SummaryBlock.tpl']);
       $template = CRM_Core_Smarty::singleton();
       $template->assign('is_recur', TRUE);
       $template->assign('frequency_interval', $params['0']['frequency_interval']);
@@ -369,6 +368,7 @@ function eventinstallment_civicrm_buildForm($formName, &$form) {
       $installmentAmount = $totalAmount / $params['0']['installments'];
       $installmentAmount = CRM_Utils_Money::format($installmentAmount);
       $template->assign('installmentAmount', $installmentAmount);
+      CRM_Core_Region::instance('page-body')->add(['template' => 'CRM/Eventinstallment/SummaryBlock.tpl']);
     }
     // To avoid confusion, changing removing parent name as first participant
     // and chaning the labels too.
