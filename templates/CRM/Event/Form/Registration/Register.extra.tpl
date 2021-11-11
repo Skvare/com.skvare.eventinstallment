@@ -5,7 +5,7 @@
             // show block in right order
             var moneyFormat    = '{/literal}{$moneyFormat}{literal}';
             CRM.$('#event_recurring_block').insertAfter('.price_set-section');
-            CRM.$('#_qf_Register_upload-bottom').html('Continue');
+            //CRM.$('#_qf_Register_upload-bottom').html('Continue');
             CRM.$('.payment_information, .payment_processor-section').show();
             CRM.$('.payment_options-group, .payment_processor-section').show();
             CRM.$('#billing-payment-block, #payment_information').show();
@@ -53,7 +53,7 @@
 <script type="text/javascript">
     CRM.$(document).ready(function() {
         // show block in right order
-        CRM.$('#_qf_Register_upload-bottom').html('Continue');
+        //CRM.$('#_qf_Register_upload-bottom').html('Continue');
         CRM.$('.payment_information, .payment_processor-section').show();
         CRM.$('.payment_options-group, .payment_processor-section').show();
         CRM.$('#billing-payment-block, #payment_information').show();

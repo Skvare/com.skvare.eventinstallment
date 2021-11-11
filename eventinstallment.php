@@ -342,8 +342,10 @@ function eventinstallment_civicrm_buildForm($formName, &$form) {
     $contactID = $finalContactList[$additionalPageNumber];
     $data = CRM_Eventinstallment_Utils::getContactData(array_keys($form->_fields), $contactID);
     $form->setDefaults($data);
+    /*
     CRM_Core_Region::instance('page-body')->add(
       ['script' => "cj('button[name=_qf_Participant_" . $additionalPageNumber . "_next_skip]').hide();"]);
+    */
   }
   elseif (in_array($formName, ['CRM_Event_Form_Registration_Confirm', 'CRM_Event_Form_Registration_ThankYou'])) {
     $session = CRM_Core_Session::singleton();

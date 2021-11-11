@@ -50,7 +50,7 @@
             additionalParticiapnt = '';
         }
         console.log('additionalParticiapnt 2: ' + additionalParticiapnt);
-        CRM.$("#additional_participants").val(additionalParticiapnt);
+        CRM.$("#additional_participants").val(additionalParticiapnt).trigger("change");
     }
 
     CRM.$('[id^="contacts_"]').change(function(){
