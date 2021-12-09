@@ -261,16 +261,6 @@ function eventinstallment_civicrm_buildForm($formName, &$form) {
     }
     $currentContactID = $form->getLoggedInUserContactID();
 
-    if (!$form->_values['event']['is_monetary']) {
-      $parents_can_register = CRM_Eventinstallment_Utils::canParentRegisterforEvent($eid);
-
-      if (!$parents_can_register) {
-        $amount = 0;
-        $session = CRM_Core_Session::singleton();
-        $session->set('parents_not_allowed', TRUE);
-        $session->set('parents_not_allowed_contact_id', $currentContactID);
-      }
-    }
     CRM_Eventinstallment_Utils::_add_reload_textfield($form);
 
     $relatedContacts = CRM_Eventinstallment_Utils::relatedContactsListing($form);
@@ -342,10 +332,6 @@ function eventinstallment_civicrm_buildForm($formName, &$form) {
     $contactID = $finalContactList[$additionalPageNumber];
     $data = CRM_Eventinstallment_Utils::getContactData(array_keys($form->_fields), $contactID);
     $form->setDefaults($data);
-    /*
-    CRM_Core_Region::instance('page-body')->add(
-      ['script' => "cj('button[name=_qf_Participant_" . $additionalPageNumber . "_next_skip]').hide();"]);
-    */
   }
   elseif (in_array($formName, ['CRM_Event_Form_Registration_Confirm', 'CRM_Event_Form_Registration_ThankYou'])) {
     $session = CRM_Core_Session::singleton();
@@ -354,8 +340,21 @@ function eventinstallment_civicrm_buildForm($formName, &$form) {
     }
     else {
       CRM_Eventinstallment_Utils::getAdditionalDiscount($form, TRUE);
+      $eid = $form->getVar('_eventId');
+      $defaults = CRM_Eventinstallment_Utils::getSettingsConfig($eid);
+      if (!in_array($eid, (array)$defaults['events_id'])) {
+        return;
+      }
+      $session = CRM_Core_Session::singleton();
+      if ($session->get('parents_not_allowed') && $form->getVar('_participantId')) {
+        $form->getVar('_participantId');
+        $result = civicrm_api3('ParticipantStatusType', 'getvalue', [
+          'return' => "id",
+          'name' => "not_attending",
+        ]);
+        CRM_Core_DAO::setFieldValue('CRM_Event_DAO_Participant', $form->getVar('_participantId'), 'status_id', $result);
+      }
     }
-
 
     $params = $form->getVar('_params');
     $totalAmount = $form->getVar('_totalAmount');
@@ -373,21 +372,13 @@ function eventinstallment_civicrm_buildForm($formName, &$form) {
       CRM_Core_Region::instance('page-body')->add(['template' => 'CRM/Eventinstallment/SummaryBlock.tpl']);
     }
     // To avoid confusion, changing removing parent name as first participant
-    // and chaning the labels too.
+    // and changing the labels too.
     if ($session->get('parents_not_allowed')) {
       $template = CRM_Core_Smarty::singleton();
       $part = $template->get_template_vars('part');
       $part[0]['info'] = ' ( Parent will be register as Non Attending Participant.)';
       $template->assign('part', $part);
       CRM_Core_Region::instance('page-body')->add(['template' => 'CRM/Eventinstallment/LineItem.tpl']);
-    }
-
-    if ($partialPaymentAmount = $session->get('partialPaymentAmount', 'partialPayment')) {
-      $params = $form->getVar('_params');
-      $session->set('partial_payment_total', $params['0']['amount'], 'partialPayment');
-      $params['0']['amount'] = $partialPaymentAmount;
-      $form->setVar('_params', $params);
-      $form->setVar('_totalAmount', $partialPaymentAmount);
     }
   }
 }
@@ -470,7 +461,31 @@ function eventinstallment_civicrm_postProcess($formName, &$form) {
       CRM_Core_DAO::executeQuery($query, $param);
     }
   }
-  elseif ($formName == "CRM_Event_Form_Registration_Confirm") {
+  elseif ($formName == "CRM_Event_Form_Registration_Register") {
+    $eid = $form->getVar('_eventId');
+    $defaults = CRM_Eventinstallment_Utils::getSettingsConfig($eid);
+    if (!in_array($eid, (array)$defaults['events_id'])) {
+      return;
+    }
+    $currentContactID = $form->getLoggedInUserContactID();
+
+    $parents_can_register = CRM_Eventinstallment_Utils::canParentRegisterforEvent($eid);
+    $session = CRM_Core_Session::singleton();
+    if (!$parents_can_register) {
+      $session = CRM_Core_Session::singleton();
+      $session->set('parents_not_allowed', TRUE);
+      $session->set('parents_not_allowed_contact_id', $currentContactID);
+    }
+    elseif (!empty($form->_submitValues) &&
+      !empty($form->_submitValues['contacts_parent_' . $currentContactID])) {
+      $session->set('parents_not_allowed', FALSE);
+    }
+    else {
+      $session->set('parents_not_allowed', TRUE);
+    }
+
+  }
+  elseif (FALSE && $formName == "CRM_Event_Form_Registration_Confirm") {
     $eid = $form->getVar('_eventId');
     $defaults = CRM_Eventinstallment_Utils::getSettingsConfig($eid);
     if (!in_array($eid, (array)$defaults['events_id'])) {
@@ -583,12 +598,8 @@ function eventinstallment_civicrm_buildAmount($pageType, &$form, &$amounts) {
     else {
       $childNumber = 0;
       $parents_can_register = CRM_Eventinstallment_Utils::canParentRegisterforEvent($eid);
-
       if (!$parents_can_register) {
         $amount = 0;
-        $session = CRM_Core_Session::singleton();
-        $session->set('parents_not_allowed', TRUE);
-        $session->set('parents_not_allowed_contact_id', $currentContactID);
       }
     }
 
@@ -621,14 +632,14 @@ function eventinstallment_civicrm_buildAmount($pageType, &$form, &$amounts) {
             !empty($form->_submitValues) &&
             empty($form->_submitValues['contacts_parent_' . $currentContactID])) {
             $sellAmount = 0;
-            $session = CRM_Core_Session::singleton();
-            $session->set('parents_not_allowed', TRUE);
+            //$session = CRM_Core_Session::singleton();
+            //$session->set('parents_not_allowed', TRUE);
           }
           elseif ($formName == 'CRM_Event_Form_Registration_Register' &&
             !empty($form->_submitValues) &&
             !empty($form->_submitValues['contacts_parent_' . $currentContactID])) {
-            $session = CRM_Core_Session::singleton();
-            $session->set('parents_not_allowed', FALSE);
+            //$session = CRM_Core_Session::singleton();
+            //$session->set('parents_not_allowed', FALSE);
           }
           /*
           $data = 'Label : ' . $option['label'] . ' -  ' . $defaultFee . ' -> ' . $sellAmount . ' : discount Amount :' . $discountAmount;

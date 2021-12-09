@@ -38,7 +38,7 @@ class CRM_Eventinstallment_Form_Setting extends CRM_Core_Form {
 
     $attribute = ['class' => 'crm-select2', 'placeholder' => ts('- any -')];
 
-    $membershipTypes = CRM_Memberships_Helper::membershipTypeCurrentDomain();
+    $membershipTypes = CRM_Eventinstallment_Utils::membershipTypeCurrentDomain();
     $this->add('select', 'events_membership_types', 'Membership Type to Filter Contact',
       $membershipTypes, FALSE, $attribute + ['multiple' => 'multiple']);
 

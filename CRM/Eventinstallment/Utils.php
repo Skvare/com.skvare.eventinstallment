@@ -364,7 +364,9 @@ class CRM_Eventinstallment_Utils {
         $membershipParams['membership_type_id'] = ['IN' => $defaults['events_membership_types']];
       }
       $resultMembership = civicrm_api3('Membership', 'get', $membershipParams);
-      if (!empty($resultMembership['values'])) {
+      // For parent membership is not required, they can register for event
+      // if its allowed through event custom setting.
+      if (!empty($resultMembership['values']) || ($parents_can_register && $group_members[$cid]['is_parent'])) {
         $group_members[$cid]['membership'] = 'Yes';
         $group_members[$cid]['skip_registration'] = FALSE;
         $group_members[$cid]['explanation'] = '';
@@ -414,7 +416,7 @@ class CRM_Eventinstallment_Utils {
       $form->assign('recurringHelpText', $gotText);
     }
 
-    $form->add('checkbox', 'is_recur', ts('I want pay'), NULL);
+    $form->add('checkbox', 'is_recur', ts('Check this box if you prefer dividing this fee into multiple payments'), NULL);
 
     if (!empty($form->_values['event']['is_recur_interval'])) {
       $form->add('text', 'frequency_interval', ts('Every'), $attributes['frequency_interval'] + ['aria-label' => ts('Every')]);
@@ -454,6 +456,7 @@ class CRM_Eventinstallment_Utils {
       $frequencyUnit = &$form->addElement('select', 'frequency_unit', NULL, $units, ['aria-label' => ts('Frequency Unit')]);
     }
     $installmentOption = ['2' => '2', '3' => '3', '4' => '4', '5' => '5', '6' => '6'];
+    $installmentOption = ['2' => '2'];
     /*
     $form->add('text', 'installments', ts('installments'), $attributes['installments']);
     */
@@ -660,7 +663,7 @@ class CRM_Eventinstallment_Utils {
       FROM civicrm_participant cp
       INNER JOIN civicrm_participant_payment cpp ON cp.id = cpp.participant_id
       INNER JOIN civicrm_contribution cc ON (cc.id = cpp.contribution_id)
-      WHERE 
+      WHERE
         cpp.participant_id = %1
         AND cc.contribution_recur_id IS NOT NULL
         AND cc.contribution_status_id = %2
@@ -1160,5 +1163,22 @@ class CRM_Eventinstallment_Utils {
       $bhfe[] = $buttonName;
       $form->assign('beginHookFormElements', $bhfe);
     }
+  }
+
+  /**
+   * @return array
+   * @throws CiviCRM_API3_Exception
+   */
+  public static function membershipTypeCurrentDomain() {
+    $result = civicrm_api3('MembershipType', 'get', [
+      'sequential' => 1,
+      'return' => ["id", "name"],
+    ]);
+    $membershipType = [];
+    foreach ($result['values'] as $details) {
+      $membershipType[$details['id']] = $details['name'];
+    }
+
+    return $membershipType;
   }
 }
