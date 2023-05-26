@@ -455,8 +455,7 @@ class CRM_Eventinstallment_Utils {
       }
       $frequencyUnit = &$form->addElement('select', 'frequency_unit', NULL, $units, ['aria-label' => ts('Frequency Unit')]);
     }
-    $installmentOption = ['2' => '2', '3' => '3', '4' => '4', '5' => '5', '6' => '6'];
-    $installmentOption = ['2' => '2', '3' => '3'];
+    $installmentOption = CRM_Core_SelectValues::getNumericOptions(2, $params['is_recur_installments'] ?? 2);
     /*
     $form->add('text', 'installments', ts('installments'), $attributes['installments']);
     */

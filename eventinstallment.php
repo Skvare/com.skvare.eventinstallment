@@ -196,7 +196,7 @@ function eventinstallment_civicrm_entityTypes(&$entityTypes) {
 
     $fields['is_recur_installments'] = [
       'name' => 'is_recur_installments',
-      'type' => CRM_Utils_Type::T_BOOLEAN,
+      'type' => CRM_Utils_Type::T_INT,
       'title' => E::ts('Recurring Installments?'),
       'description' => E::ts('if true - asks user for recurring installments'),
       'where' => 'civicrm_event.is_recur_installments',
@@ -237,7 +237,9 @@ function eventinstallment_civicrm_buildForm($formName, &$form) {
         ['&nbsp;&nbsp;', '&nbsp;&nbsp;', '&nbsp;&nbsp;', '<br/>'], TRUE
       );
       $form->addElement('checkbox', 'is_recur_interval', ts('Support recurring intervals'));
-      $form->addElement('checkbox', 'is_recur_installments', ts('Offer installments'));
+      //$form->addElement('checkbox', 'is_recur_installments', ts('Maximum Offer installments'));
+      $numericOptions = CRM_Core_SelectValues::getNumericOptions(2, 12);
+      $form->add('select', 'is_recur_installments', ts('Maximum Offer installments'), $numericOptions, FALSE, ['class' => 'required']);
       $params = ['id' => $form->getVar('_id')];
       CRM_Event_BAO_Event::retrieve($params, $defaults);
       if (!empty($defaults['recur_frequency_unit'])) {
