@@ -448,7 +448,7 @@ function eventinstallment_civicrm_postProcess($formName, &$form) {
       $param = [
         1 => [$submit['recur_frequency_unit'], 'String'],
         2 => [$submit['is_recur_interval'], 'Boolean'],
-        3 => [$submit['is_recur_installments'], 'Boolean'],
+        3 => [$submit['is_recur_installments'], 'Integer'],
         4 => [$submit['is_recur'], 'Boolean']
       ];
 
