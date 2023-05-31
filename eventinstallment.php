@@ -697,3 +697,19 @@ function eventinstallment_civicrm_alterTemplateFile($formName, $form, $context, 
     }
   }
 }
+
+function eventinstallment_civicrm_tabset($tabsetName, &$tabs, $context) {
+  if ($tabsetName == 'civicrm/event/manage' && isset($context['event_id'])) {
+    $eventID = $context['event_id'];
+    $url = CRM_Utils_System::url('civicrm/event/manage/discount',
+      "reset=1&action=update&component=event&id=$eventID");
+    //add a new tab along with url
+    $tabs['discount'] = [
+      'title' => ts('Discount'),
+      'link' => $url,
+      'valid' => 1,
+      'active' => 1,
+      'current' => FALSE,
+    ];
+  }
+}
