@@ -704,12 +704,14 @@ function eventinstallment_civicrm_tabset($tabsetName, &$tabs, $context) {
     $url = CRM_Utils_System::url('civicrm/event/manage/discount',
       "reset=1&action=update&component=event&id=$eventID");
     //add a new tab along with url
-    $tabs['discount'] = [
-      'title' => ts('Discount'),
+    $tabsDiscount['discount'] = [
+      'title' => ts('Signup and Discount'),
       'link' => $url,
       'valid' => 1,
       'active' => 1,
       'current' => FALSE,
     ];
+
+    array_splice($tabs, 4, 0, $tabsDiscount);
   }
 }
