@@ -455,7 +455,7 @@ class CRM_Eventinstallment_Utils {
       }
       $frequencyUnit = &$form->addElement('select', 'frequency_unit', NULL, $units, ['aria-label' => ts('Frequency Unit')]);
     }
-    if (empty($params['is_recur_installments'])) {
+    if (!empty($params['is_recur_installments']) && $params['is_recur_installments'] == 1) {
       $is_recur_installments_number = 3;
     }
     else {
