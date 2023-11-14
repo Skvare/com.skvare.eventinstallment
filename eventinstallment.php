@@ -416,6 +416,10 @@ function eventinstallment_civicrm_validateForm($formName, &$fields, &$files, &$f
     if (empty($childContacts)) {
       $errors['additional_participants'] = ts('Select at least one child');
     }
+    elseif (count($childContacts) != $fields['additional_participants']) {
+      CRM_Core_Error::debug_var('Validation Error', 'The child count and additional participant count are not the same. ID - ' . $currentContactID);
+      $errors['additional_participants'] = ts('We detected a validation issue; please enter your credit card details manually.');
+    }
     if (!$parents_can_register || ($parents_can_register && empty($parentContact[$currentContactID]))) {
       if (!$form->_values['event']['is_monetary']) {
         return;
