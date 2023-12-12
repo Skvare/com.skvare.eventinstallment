@@ -7,6 +7,12 @@
     <access_arguments>administer CiviCRM</access_arguments>
   </item>
   <item>
+    <path>civicrm/event/manage/discount</path>
+    <page_callback>CRM_Eventinstallment_Form_ManageEvent_Discount</page_callback>
+    <title>Event Discount</title>
+    <access_arguments>administer CiviCRM</access_arguments>
+  </item>
+  <item>
     <path>civicrm/admin/event/customlisting</path>
     <page_callback>CRM_Eventinstallment_Page_Listing</page_callback>
     <title>Event Configuration Listing</title>

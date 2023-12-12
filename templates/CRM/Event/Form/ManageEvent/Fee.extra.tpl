@@ -68,7 +68,7 @@
                         </tr>
                         <tr class="crm-event-form-block-is_recur_installments"><td scope="row" class="label">{$form.is_recur_installments.label}</td>
                             <td>{$form.is_recur_installments.html}<br />
-                                <span class="description">{ts}Give the user a choice of installments (e.g. donate every month for 6 months)? If not, recurring donations will continue indefinitely.{/ts}</span></td>
+                                <span class="description">{ts}Restrict total number of installments.{/ts}</span></td>
                         </tr>
                     </table>
                 </td>

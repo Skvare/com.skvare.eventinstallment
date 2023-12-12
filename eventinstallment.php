@@ -196,7 +196,7 @@ function eventinstallment_civicrm_entityTypes(&$entityTypes) {
 
     $fields['is_recur_installments'] = [
       'name' => 'is_recur_installments',
-      'type' => CRM_Utils_Type::T_BOOLEAN,
+      'type' => CRM_Utils_Type::T_INT,
       'title' => E::ts('Recurring Installments?'),
       'description' => E::ts('if true - asks user for recurring installments'),
       'where' => 'civicrm_event.is_recur_installments',
@@ -237,7 +237,9 @@ function eventinstallment_civicrm_buildForm($formName, &$form) {
         ['&nbsp;&nbsp;', '&nbsp;&nbsp;', '&nbsp;&nbsp;', '<br/>'], TRUE
       );
       $form->addElement('checkbox', 'is_recur_interval', ts('Support recurring intervals'));
-      $form->addElement('checkbox', 'is_recur_installments', ts('Offer installments'));
+      //$form->addElement('checkbox', 'is_recur_installments', ts('Maximum Offer installments'));
+      $numericOptions = CRM_Core_SelectValues::getNumericOptions(2, 12);
+      $form->add('select', 'is_recur_installments', ts('Maximum Offer installments'), $numericOptions, FALSE, ['class' => 'required']);
       $params = ['id' => $form->getVar('_id')];
       CRM_Event_BAO_Event::retrieve($params, $defaults);
       if (!empty($defaults['recur_frequency_unit'])) {
@@ -414,6 +416,10 @@ function eventinstallment_civicrm_validateForm($formName, &$fields, &$files, &$f
     if (empty($childContacts)) {
       $errors['additional_participants'] = ts('Select at least one child');
     }
+    elseif (count($childContacts) != $fields['additional_participants']) {
+      CRM_Core_Error::debug_var('Validation Error', 'The child count and additional participant count are not the same. ID - ' . $currentContactID);
+      $errors['additional_participants'] = ts('We detected a validation issue; please enter your credit card details manually.');
+    }
     if (!$parents_can_register || ($parents_can_register && empty($parentContact[$currentContactID]))) {
       if (!$form->_values['event']['is_monetary']) {
         return;
@@ -446,7 +452,7 @@ function eventinstallment_civicrm_postProcess($formName, &$form) {
       $param = [
         1 => [$submit['recur_frequency_unit'], 'String'],
         2 => [$submit['is_recur_interval'], 'Boolean'],
-        3 => [$submit['is_recur_installments'], 'Boolean'],
+        3 => [$submit['is_recur_installments'], 'Integer'],
         4 => [$submit['is_recur'], 'Boolean']
       ];
 
@@ -693,5 +699,23 @@ function eventinstallment_civicrm_alterTemplateFile($formName, $form, $context, 
         $tplName = 'AccessDenied.tpl';
       }
     }
+  }
+}
+
+function eventinstallment_civicrm_tabset($tabsetName, &$tabs, $context) {
+  if ($tabsetName == 'civicrm/event/manage' && isset($context['event_id'])) {
+    $eventID = $context['event_id'];
+    $url = CRM_Utils_System::url('civicrm/event/manage/discount',
+      "reset=1&action=update&component=event&id=$eventID");
+    //add a new tab along with url
+    $tabsDiscount['discount'] = [
+      'title' => ts('Signup and Discount'),
+      'link' => $url,
+      'valid' => 1,
+      'active' => 1,
+      'current' => FALSE,
+    ];
+
+    array_splice($tabs, 4, 0, $tabsDiscount);
   }
 }

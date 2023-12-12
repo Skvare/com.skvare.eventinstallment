@@ -132,4 +132,11 @@ class CRM_Eventinstallment_Upgrader extends CRM_Eventinstallment_Upgrader_Base {
   //   return TRUE;
   // }
 
+  public function upgrade_1001() {
+    $this->ctx->log->info('Applying update 1001');
+    CRM_Core_DAO::executeQuery("ALTER TABLE `civicrm_event` CHANGE `is_recur_installments` `is_recur_installments` INT NULL DEFAULT '0' COMMENT 'if true - asks user for recurring installments'");
+
+    return TRUE;
+  }
+
 }

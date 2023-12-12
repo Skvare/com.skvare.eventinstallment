@@ -36,9 +36,7 @@
                 {$form.frequency_unit.html}
             {/if}
             {if $is_recur_installments}
-                <span id="recur_installments_num">
-          {ts}for{/ts} {$form.installments.html} installments.
-          </span>
+                <span id="recur_installments_num">{ts}for{/ts} {$form.installments.html} installments.</span>
             {/if}
             <div id="paymentSummary" class="description"></div>
             <div id="recurHelp" class="description">
