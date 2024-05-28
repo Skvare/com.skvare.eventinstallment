@@ -333,6 +333,8 @@ function eventinstallment_civicrm_buildForm($formName, &$form) {
     [$dontCare, $additionalPageNumber] = explode('_', $form->getVar('_name'));
     $contactID = $finalContactList[$additionalPageNumber];
     $data = CRM_Eventinstallment_Utils::getContactData(array_keys($form->_fields), $contactID);
+    $data['contact_id'] = $contactID;
+    $form->add('hidden', 'contact_id', $contactID);
     $form->setDefaults($data);
   }
   elseif (in_array($formName, ['CRM_Event_Form_Registration_Confirm', 'CRM_Event_Form_Registration_ThankYou'])) {
@@ -507,6 +509,18 @@ function eventinstallment_civicrm_postProcess($formName, &$form) {
       ]);
       CRM_Core_DAO::setFieldValue('CRM_Event_DAO_Participant', $form->getVar('_participantId'), 'status_id', $result);
     }
+  }
+  elseif ($formName == "CRM_Event_Form_Registration_AdditionalParticipant") {
+    $eid = $form->getVar('_eventId');
+    $defaults = CRM_Eventinstallment_Utils::getSettingsConfig($eid);
+    if (!in_array($eid, (array)$defaults['events_id'])) {
+      return;
+    }
+    $submit = $form->getVar('_submitValues');
+    $addParticipantNum = substr($form->getVar('_name'), 12);
+    $_params = $form->get('params');
+    $_params[$addParticipantNum]['contact_id'] = $submit['contact_id'];
+    $form->set('params', $_params);
   }
 }
 
