@@ -1,6 +1,10 @@
 <?php
 
 require_once 'eventinstallment.civix.php';
+use Brick\Money\Money;
+use Brick\Money\Context\DefaultContext;
+use Brick\Money\Context\CustomContext;
+use Brick\Math\RoundingMode;
 // phpcs:disable
 use CRM_Eventinstallment_ExtensionUtil as E;
 // phpcs:enable
@@ -371,7 +375,13 @@ function eventinstallment_civicrm_buildForm($formName, &$form) {
       $template->assign('installments', $params['0']['installments']);
       $totalAmount = $totalAmount;
       $installmentAmount = $totalAmount / $params['0']['installments'];
-      $installmentAmount = CRM_Utils_Money::format($installmentAmount);
+      $numberOfPlaces = 2;
+      $money = Money::of($installmentAmount, CRM_Core_Config::singleton()
+        ->defaultCurrency, new CustomContext($numberOfPlaces),
+        RoundingMode::CEILING);
+      $formatter = new \NumberFormatter('en_US', NumberFormatter::DECIMAL);
+      $formatter->setAttribute(\NumberFormatter::MIN_FRACTION_DIGITS, $numberOfPlaces);
+      $installmentAmount =  $money->formatWith($formatter);
       $template->assign('installmentAmount', $installmentAmount);
       CRM_Core_Region::instance('page-body')->add(['template' => 'CRM/Eventinstallment/SummaryBlock.tpl']);
     }
