@@ -1,10 +1,6 @@
 <?php
 
 require_once 'eventinstallment.civix.php';
-use Brick\Money\Money;
-use Brick\Money\Context\DefaultContext;
-use Brick\Money\Context\CustomContext;
-use Brick\Math\RoundingMode;
 // phpcs:disable
 use CRM_Eventinstallment_ExtensionUtil as E;
 // phpcs:enable
@@ -373,20 +369,7 @@ function eventinstallment_civicrm_buildForm($formName, &$form) {
       $template->assign('frequency_interval', $params['0']['frequency_interval']);
       $template->assign('frequency_unit', $params['0']['frequency_unit']);
       $template->assign('installments', $params['0']['installments']);
-      $totalAmount = $totalAmount;
-      $installmentAmount = $totalAmount / $params['0']['installments'];
-      $numberOfPlaces = 2;
-      $money = Money::of($installmentAmount, CRM_Core_Config::singleton()
-        ->defaultCurrency, new CustomContext($numberOfPlaces),
-        RoundingMode::CEILING);
-      $formatter = new \NumberFormatter('en_US', NumberFormatter::DECIMAL);
-      $formatter->setAttribute(\NumberFormatter::MIN_FRACTION_DIGITS, $numberOfPlaces);
-      $installmentAmount =  $money->formatWith($formatter);
-      // We do not need any thousand separator, payment processor require
-      // plain amount value.
-      $config = CRM_Core_Config::singleton();
-      $rep = [$config->monetaryThousandSeparator => '',];
-      $installmentAmount = strtr($installmentAmount, $rep);
+      $installmentAmount = CRM_Eventinstallment_Utils::roundupMoneyForInstallment($totalAmount, $params['0']['installments']);
       $template->assign('installmentAmount', $installmentAmount);
       CRM_Core_Region::instance('page-body')->add(['template' => 'CRM/Eventinstallment/SummaryBlock.tpl']);
     }

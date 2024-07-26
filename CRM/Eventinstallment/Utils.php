@@ -1,5 +1,9 @@
 <?php
 use CRM_Eventinstallment_ExtensionUtil as E;
+use Brick\Money\Money;
+use Brick\Money\Context\DefaultContext;
+use Brick\Money\Context\CustomContext;
+use Brick\Math\RoundingMode;
 
 class CRM_Eventinstallment_Utils {
 
@@ -481,8 +485,8 @@ class CRM_Eventinstallment_Utils {
     $numInstallments = $inputParams['installments'];
     $contributionFirstAmount = $contributionRecurAmount = $inputParams['amount'];
     if ($numInstallments > 0) {
-      $contributionRecurAmount = floor(($inputParams['amount'] / $numInstallments) * 100) / 100;
-      $contributionFirstAmount = $inputParams['amount'] - $contributionRecurAmount * ($numInstallments - 1);
+      $contributionRecurAmount = $contributionFirstAmount =
+        self::roundupMoneyForInstallment($inputParams['amount'], $numInstallments);
     }
 
     // Create Params for Creating the Recurring Contribution Series and Create it
@@ -1189,5 +1193,23 @@ class CRM_Eventinstallment_Utils {
     }
 
     return $membershipType;
+  }
+
+  /**
+   * Function to do correct round up.
+   *
+   * @param $totalAmount
+   * @param $installments
+   */
+  public static function roundupMoneyForInstallment($totalAmount, $installments) {
+    $numberOfPlaces = 2;
+    $money = Money::of($totalAmount, CRM_Core_Config::singleton()
+      ->defaultCurrency, new CustomContext($numberOfPlaces), RoundingMode::CEILING);
+    $formatter = new \NumberFormatter('en_US', NumberFormatter::DECIMAL);
+    $formatter->setAttribute(\NumberFormatter::MIN_FRACTION_DIGITS, $numberOfPlaces);
+    $installmentAmount = $money->formatWith($formatter);
+    $installmentAmount = CRM_Utils_Rule::cleanMoney($installmentAmount);
+
+    return $installmentAmount;
   }
 }
