@@ -1202,8 +1202,9 @@ class CRM_Eventinstallment_Utils {
    * @param $installments
    */
   public static function roundupMoneyForInstallment($totalAmount, $installments) {
+    $installmentAmount = $totalAmount / $installments;
     $numberOfPlaces = 2;
-    $money = Money::of($totalAmount, CRM_Core_Config::singleton()
+    $money = Money::of($installmentAmount, CRM_Core_Config::singleton()
       ->defaultCurrency, new CustomContext($numberOfPlaces), RoundingMode::CEILING);
     $formatter = new \NumberFormatter('en_US', NumberFormatter::DECIMAL);
     $formatter->setAttribute(\NumberFormatter::MIN_FRACTION_DIGITS, $numberOfPlaces);
