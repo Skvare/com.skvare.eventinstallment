@@ -370,6 +370,7 @@ function eventinstallment_civicrm_buildForm($formName, &$form) {
       $template->assign('frequency_unit', $params['0']['frequency_unit']);
       $template->assign('installments', $params['0']['installments']);
       $installmentAmount = CRM_Eventinstallment_Utils::roundupMoneyForInstallment($totalAmount, $params['0']['installments']);
+      $installmentAmount = CRM_Utils_Money::format($installmentAmount);
       $template->assign('installmentAmount', $installmentAmount);
       CRM_Core_Region::instance('page-body')->add(['template' => 'CRM/Eventinstallment/SummaryBlock.tpl']);
     }
