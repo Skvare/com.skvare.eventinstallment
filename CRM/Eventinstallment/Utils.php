@@ -521,6 +521,9 @@ class CRM_Eventinstallment_Utils {
     $contributionParams['contribution_recur_id'] = $resultRecur['id'];
     $contributionParams['financial_type_id'] = $contributionRecurParams['financial_type_id'];
     $contributionParams['skipLineItem'] = 1;
+    if ($form->_action & CRM_Core_Action::PREVIEW || CRM_Utils_Array::value('mode', $inputParams) == 'test') {
+      $contributionParams['is_test'] = 1;
+    }
     // Create Contribution records
     $result = civicrm_api3('contribution', 'create', $contributionParams);
 
