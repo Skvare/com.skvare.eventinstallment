@@ -6,10 +6,10 @@
             {if $contact.is_parent}
             {assign var="elementName" value=contacts_parent_$contactID}
                 {if $contactID eq $currentContactID}
-                    {assign var="currentUser" value='currentuser'}
+                    {assign var="currentUser" value='currentUser'}
                 {/if}
             <tr id='rowid{$contactID}' class="{cycle values="odd-row,even-row"}">
-                <td>{$form.$elementName.html} - {$form.$elementName.label}</td>
+                <td>{$form.$elementName.html|crmAddClass:$currentUser} - {$form.$elementName.label}</td>
                 <td>{$contact.explanation}</td>
             </tr>
             {/if}
