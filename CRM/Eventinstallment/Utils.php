@@ -83,21 +83,27 @@ class CRM_Eventinstallment_Utils {
     $_amount = $form->getVar('_amount');
     $_values = $form->getVar('_values');
 
-    /*
     $resultContribution = civicrm_api3('PriceField', 'get', [
       'sequential' => 1,
-      'price_set_id' => "default_contribution_amount",
+      'price_set_id' => $form->_priceSetId,
       'api.PriceFieldValue.get' => [],
     ]);
-    $priceFieldsContribution = reset($resultContribution['values']['0']['api.PriceFieldValue.get']['values']);
-    */
+    $priceFieldsContribution = $resultContribution['values']['0']['api.PriceFieldValue.get']['values'];
+    $financial_Assistant_Discount = $special_Discount = [];
+    foreach ($priceFieldsContribution as $lineField) {
+      if ($lineField['name'] == 'Financial_Assistant_Discount') {
+        $financial_Assistant_Discount = $lineField;
+      }
+      if ($lineField['name'] == 'Special_Discount') {
+        $special_Discount = $lineField;
+      }
+    }
 
     $currentContactID = $form->getLoggedInUserContactID();
     $eid = $form->getVar('_eventId');
 
 
     $defaults = CRM_Eventinstallment_Utils::getSettingsConfig($eid);
-
 
     $returnField = ["group"];
     if (!empty($defaults['events_financial_discount_group_discount_amount'])) {
@@ -133,8 +139,8 @@ class CRM_Eventinstallment_Utils {
         $item = [];
         $item['qty'] = 1;
         $item['financial_type_id'] = $_values['event']['financial_type_id'];
-        //$item['price_field_id'] = $priceFieldsContribution['price_field_id'];
-        //$item['price_field_value_id'] = $priceFieldsContribution['id'];
+        $item['price_field_id'] = $special_Discount['price_field_id'] ?? '';
+        $item['price_field_value_id'] = $special_Discount['id'] ?? '';
         $item['unit_price'] = $discountAmount;
         $item['line_total'] = $discountAmount;
         $item['label'] = $newLabel;
@@ -157,8 +163,8 @@ class CRM_Eventinstallment_Utils {
         $item = [];
         $item['qty'] = 1;
         $item['financial_type_id'] = $_values['event']['financial_type_id'];
-        //$item['price_field_id'] = $priceFieldsContribution['price_field_id'];
-        //$item['price_field_value_id'] = $priceFieldsContribution['id'];
+        $item['price_field_id'] = $financial_Assistant_Discount['price_field_id'] ?? '';
+        $item['price_field_value_id'] = $financial_Assistant_Discount['id'] ?? '';
         $item['unit_price'] = $discountAmount;
         $item['line_total'] = $discountAmount;
         $item['label'] = $newLabel;

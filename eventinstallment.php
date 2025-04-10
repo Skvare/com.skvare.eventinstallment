@@ -638,6 +638,10 @@ function eventinstallment_civicrm_buildAmount($pageType, &$form, &$amounts) {
       }
       foreach ($fee['options'] as $option_id => &$option) {
         if (array_key_exists($option_id, $getPriceSetsInfo)) {
+          if (in_array($option['name'], ['Financial_Assistant_Discount', 'Special_Discount'])) {
+            // do not show discount fees.
+            unset($fee['options'][$option_id]);
+          }
           [$defaultFee, $sellAmount, $discountAmount] =
             CRM_Eventinstallment_Utils::getDiscountAmount($eid, $option_id,
               $childNumber, $isJccMember);
