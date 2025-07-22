@@ -135,7 +135,7 @@ class CRM_Eventinstallment_Utils {
           $type = 2;
         }
         [$newTotalAmount, $discountAmount, $newLabel] = self::_calc_discount
-        ($originalTotalAmount, $contactResult[$defaults['events_financial_discount_group_discount_amount']], $type, 'Financial Assistant Discount');
+        ($originalTotalAmount, $contactResult[$defaults['events_financial_discount_group_discount_amount']], $type, 'Financial Assistance Discount');
         $item = [];
         $item['qty'] = 1;
         $item['financial_type_id'] = $_values['event']['financial_type_id'];
