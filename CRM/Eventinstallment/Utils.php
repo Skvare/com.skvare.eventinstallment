@@ -91,7 +91,7 @@ class CRM_Eventinstallment_Utils {
     $priceFieldsContribution = $resultContribution['values']['0']['api.PriceFieldValue.get']['values'];
     $financial_Assistant_Discount = $special_Discount = [];
     foreach ($priceFieldsContribution as $lineField) {
-      if ($lineField['name'] == 'Financial_Assistant_Discount') {
+      if ($lineField['name'] == 'Financial_Assistant_Discount' || $lineField['name'] == 'Financial_Assistance_Discount') {
         $financial_Assistant_Discount = $lineField;
       }
       if ($lineField['name'] == 'Special_Discount') {
