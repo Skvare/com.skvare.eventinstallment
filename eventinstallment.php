@@ -340,10 +340,14 @@ function eventinstallment_civicrm_buildForm($formName, &$form) {
   elseif (in_array($formName, ['CRM_Event_Form_Registration_Confirm', 'CRM_Event_Form_Registration_ThankYou'])) {
     $session = CRM_Core_Session::singleton();
     if ($formName == 'CRM_Event_Form_Registration_Confirm') {
-      CRM_Eventinstallment_Utils::getAdditionalDiscount($form);
+      if ($form->_values['event']['is_monetary']) {
+        CRM_Eventinstallment_Utils::getAdditionalDiscount($form);
+      }
     }
     else {
-      CRM_Eventinstallment_Utils::getAdditionalDiscount($form, TRUE);
+      if ($form->_values['event']['is_monetary']) {
+        CRM_Eventinstallment_Utils::getAdditionalDiscount($form, TRUE);
+      }
       $eid = $form->getVar('_eventId');
       $defaults = CRM_Eventinstallment_Utils::getSettingsConfig($eid);
       if (!in_array($eid, (array)$defaults['events_id'])) {

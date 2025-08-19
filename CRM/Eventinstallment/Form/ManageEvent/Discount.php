@@ -142,8 +142,10 @@ class CRM_Eventinstallment_Form_ManageEvent_Discount extends
     $eventID = $this->_id;
     if (!empty($eventConfig)) {
       CRM_Eventinstallment_Utils::setSettingsConfig($eventConfig, $eventID);
+      // Update tab "disabled" css class
+      $this->ajaxResponse['tabValid'] = 1;
     }
-    CRM_Core_Session::setStatus(E::ts('Setting updated successfully'));
+    parent::endPostProcess();
   }
 
   /**
