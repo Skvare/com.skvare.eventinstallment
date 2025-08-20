@@ -388,6 +388,18 @@ function eventinstallment_civicrm_buildForm($formName, &$form) {
       CRM_Core_Region::instance('page-body')->add(['template' => 'CRM/Eventinstallment/LineItem.tpl']);
     }
   }
+
+  // Handle Price field for discount, as prisent contain too many fields.
+  if (in_array($formName, ['CRM_Price_Form_Field'])) {
+    if ($form->_action & CRM_Core_Action::UPDATE) {
+      $domainID = CRM_Core_Config::domainID();
+      $settings = Civi::settings($domainID);
+      if ($form->_defaultValues['html_type'] == 'Radio') {
+        $form->addElement('checkbox', 'pricefield_for_discount', ts('Is this Discount Field'));
+        $form->setDefaults(['pricefield_for_discount' => $settings->get('pricefield_for_discount_fid_' . $form->getVar('_fid'))]);
+      }
+    }
+  }
 }
 
 function eventinstallment_civicrm_validateForm($formName, &$fields, &$files, &$form, &$errors) {
@@ -524,6 +536,22 @@ function eventinstallment_civicrm_postProcess($formName, &$form) {
     $_params = $form->get('params');
     $_params[$addParticipantNum]['contact_id'] = $submit['contact_id'];
     $form->set('params', $_params);
+  }
+
+  if (in_array($formName, ['CRM_Price_Form_Field'])) {
+    $domainID = CRM_Core_Config::domainID();
+    $settings = Civi::settings($domainID);
+    if ($form->getVar('_fid')) {
+      $id = $form->getVar('_fid');
+    }
+    if ($id) {
+      if ($form->_submitValues['html_type'] == 'Radio') {
+        $pricefield_for_discount = $form->_submitValues['pricefield_for_discount'] ?? NULL;
+        $domainID = CRM_Core_Config::domainID();
+        $settings = Civi::settings($domainID);
+        $settings->set('pricefield_for_discount_fid_' . $id, $pricefield_for_discount);
+      }
+    }
   }
 }
 
