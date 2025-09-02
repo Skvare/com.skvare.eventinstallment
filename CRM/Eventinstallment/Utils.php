@@ -91,10 +91,11 @@ class CRM_Eventinstallment_Utils {
     $priceFieldsContribution = $resultContribution['values']['0']['api.PriceFieldValue.get']['values'];
     $financial_Assistant_Discount = $special_Discount = [];
     foreach ($priceFieldsContribution as $lineField) {
-      if ($lineField['name'] == 'Financial_Assistant_Discount' || $lineField['name'] == 'Financial_Assistance_Discount') {
+      if (strtolower($lineField['name']) == 'financial_assistant_discount' ||
+        strtolower($lineField['name']) == 'financial_assistance_discount') {
         $financial_Assistant_Discount = $lineField;
       }
-      if ($lineField['name'] == 'Special_Discount') {
+      if (strtolower($lineField['name']) == 'special_discount') {
         $special_Discount = $lineField;
       }
     }
@@ -829,7 +830,10 @@ class CRM_Eventinstallment_Utils {
       SELECT    pfv.id as item_id,
                 pfv.label as item_label,
                 pf.label as pf_label,
-                ps.title as ps_label
+                ps.title as ps_label,
+                pf.id as pf_id,
+                pf.html_type as pf_html_type,
+                ps.is_quick_config as is_quick_config
       FROM      civicrm_price_field_value as pfv
       LEFT JOIN civicrm_price_field as pf on (pf.id = pfv.price_field_id AND pf.is_active  = 1 AND pfv.is_active = 1)
       LEFT JOIN civicrm_price_set as ps on (ps.id = pf.price_set_id AND ps.is_active = 1)
@@ -840,7 +844,14 @@ class CRM_Eventinstallment_Utils {
 
     $dao = CRM_Core_DAO::executeQuery($sql, $params);
     $priceSets = [];
+    $domainID = CRM_Core_Config::domainID();
+    $settings = Civi::settings($domainID);
     while ($dao->fetch()) {
+      if (!$dao->is_quick_config) {
+        if (!$settings->get('pricefield_for_discount_fid_' . $dao->pf_id)) {
+          continue;
+        }
+      }
       $priceSets[$dao->item_id] = [
         'item_id' => $dao->item_id,
         'item_label' => $dao->item_label,
