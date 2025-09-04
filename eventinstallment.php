@@ -394,7 +394,7 @@ function eventinstallment_civicrm_buildForm($formName, &$form) {
     if ($form->_action & CRM_Core_Action::UPDATE) {
       $domainID = CRM_Core_Config::domainID();
       $settings = Civi::settings($domainID);
-      if ($form->_defaultValues['html_type'] == 'Radio') {
+      if (in_array($form->_defaultValues['html_type'], ['Select', 'Radio'])) {
         $form->addElement('checkbox', 'pricefield_for_discount', ts('Is this Discount Field'));
         $form->setDefaults(['pricefield_for_discount' => $settings->get('pricefield_for_discount_fid_' . $form->getVar('_fid'))]);
       }
@@ -545,7 +545,7 @@ function eventinstallment_civicrm_postProcess($formName, &$form) {
       $id = $form->getVar('_fid');
     }
     if ($id) {
-      if ($form->_submitValues['html_type'] == 'Radio') {
+      if (in_array($form->_submitValues['html_type'], ['Select', 'Radio'])) {
         $pricefield_for_discount = $form->_submitValues['pricefield_for_discount'] ?? NULL;
         $domainID = CRM_Core_Config::domainID();
         $settings = Civi::settings($domainID);
@@ -682,6 +682,7 @@ function eventinstallment_civicrm_buildAmount($pageType, &$form, &$amounts) {
           }
           if ($childNumber == 0 && isset($parents_can_register) && !$parents_can_register) {
             $sellAmount = 0;
+            $fee['is_required'] = FALSE;
           }
           elseif ($formName == 'CRM_Event_Form_Registration_Register' &&
             !empty($form->_submitValues) &&
