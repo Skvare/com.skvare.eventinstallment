@@ -10,7 +10,7 @@
     <path>civicrm/event/manage/discount</path>
     <page_callback>CRM_Eventinstallment_Form_ManageEvent_Discount</page_callback>
     <title>Event Discount</title>
-    <access_arguments>administer CiviCRM</access_arguments>
+    <access_arguments>access CiviEvent</access_arguments>
   </item>
   <item>
     <path>civicrm/admin/event/customlisting</path>
