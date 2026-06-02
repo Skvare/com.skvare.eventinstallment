@@ -715,6 +715,9 @@ function eventinstallment_civicrm_buildAmount($pageType, &$form, &$amounts) {
           }
         }
       }
+      if ($childNumber == 0 && isset($parents_can_register) && !$parents_can_register) {
+        $fee['is_required'] = FALSE;
+      }
     }
   }
 }
