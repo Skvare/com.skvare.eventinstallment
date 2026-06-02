@@ -63,6 +63,7 @@
         <div class="description">To use JCC Disount feature, choose JCC field from CiviCRM, it will check JCC value on parent contact and give discount to child.</div>
       </td>
     </tr>
+      {if !empty($price_fields)}
       {foreach from=$price_fields key=type_id item=label}
           {if $type_id}
             <tr><td colspan="2">
@@ -133,6 +134,9 @@
               </td></tr>
           {/if}
       {/foreach}
+      {else}
+        <tr><td colspan="2">{ts}No price field was found. Please add a price field to the event price set and ensure that the <strong>"Is this Discount Field"</strong> option is checked.{/ts}</td></tr>
+      {/if}
   </table>
 
   <div class="crm-submit-buttons">{include file="CRM/common/formButtons.tpl" location="bottom"}</div>
