@@ -31,7 +31,7 @@ class CRM_Eventinstallment_Form_ManageEvent_Discount extends
     }
   }
   public function buildQuickForm() {
-    $groups = ['' => '-- select --'] + CRM_Core_PseudoConstant::nestedGroup();
+    $groups = ['' => '-- select --'] + CRM_Core_PseudoConstant::nestedGroup(textFormat: 'plain');
 
     $this->add('select', 'events_relationships', 'Relationship type',
       CRM_Eventinstallment_Utils::relationshipTypes(),

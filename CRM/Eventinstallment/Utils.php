@@ -82,13 +82,23 @@ class CRM_Eventinstallment_Utils {
     $lineItem = $form->getVar('_lineItem');
     $_amount = $form->getVar('_amount');
     $_values = $form->getVar('_values');
-
     $resultContribution = civicrm_api3('PriceField', 'get', [
       'sequential' => 1,
       'price_set_id' => $form->_priceSetId,
+      'is_active' => 1,
       'api.PriceFieldValue.get' => [],
     ]);
-    $priceFieldsContribution = $resultContribution['values']['0']['api.PriceFieldValue.get']['values'];
+    $domainID = CRM_Core_Config::domainID();
+    $settings = Civi::settings($domainID);
+    $priceFieldsContribution = [];
+    foreach ($resultContribution['values'] as $key => $priceField) {
+      if ($settings->get('pricefield_for_discount_fid_' . $priceField['id'])) {
+        $priceFieldsContribution = $resultContribution['values'][$key]['api.PriceFieldValue.get']['values'];
+      }
+    }
+    if (empty($priceFieldsContribution)) {
+      $priceFieldsContribution = $resultContribution['values'][0]['api.PriceFieldValue.get']['values'] ?? [];
+    }
     $financial_Assistant_Discount = $special_Discount = [];
     foreach ($priceFieldsContribution as $lineField) {
       if (strtolower($lineField['name']) == 'financial_assistant_discount' ||
@@ -105,7 +115,6 @@ class CRM_Eventinstallment_Utils {
 
 
     $defaults = CRM_Eventinstallment_Utils::getSettingsConfig($eid);
-
     $returnField = ["group"];
     if (!empty($defaults['events_financial_discount_group_discount_amount'])) {
       $returnField[] = $defaults['events_financial_discount_group_discount_amount'];
