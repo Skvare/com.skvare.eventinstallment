@@ -1152,10 +1152,12 @@ class CRM_Eventinstallment_Utils {
    * @return array
    */
   public static function contactSequenceForRegistration($form) {
-    $params = $form->getVar('_params');
+    // Read from the session: since 6.x hook_buildAmount runs during
+    // preProcess, before AdditionalParticipant loads $_params.
+    $params = $form->get('params');
     $currentContactID = $form->getLoggedInUserContactID();
     $childContacts = $childSortContacts = $parentContacts = [];
-    foreach ($params[0] as $k => $v) {
+    foreach ($params[0] ?? [] as $k => $v) {
       if (strpos($k, 'contacts_child_') === 0) {
         [, , $cid] = explode('_', $k);
         $childContacts[$cid] = $cid;

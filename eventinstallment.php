@@ -525,7 +525,7 @@ function eventinstallment_civicrm_buildAmount($pageType, &$form, &$amounts) {
       }
     }
 
-    $psid = $form->get('priceSetId');
+    $psid = $form->getPriceSetID();
     $getPriceSetsInfo = CRM_Eventinstallment_Utils::getPriceSetsInfo($psid);
 
     $session = CRM_Core_Session::singleton();
@@ -579,7 +579,7 @@ function eventinstallment_civicrm_buildAmount($pageType, &$form, &$amounts) {
           if (array_key_exists('tax_amount', $originalAmounts[$fee_id]['options'][$option_id]) &&
             array_key_exists('tax_rate', $originalAmounts[$fee_id]['options'][$option_id])
           ) {
-            $recalculateTaxAmount = CRM_Contribute_BAO_Contribution_Utils::calculateTaxAmount($amount, $originalAmounts[$fee_id]['options'][$option_id]['tax_rate']);
+            $recalculateTaxAmount = CRM_Contribute_BAO_Contribution_Utils::calculateTaxAmount($sellAmount, $originalAmounts[$fee_id]['options'][$option_id]['tax_rate']);
             if (!empty($recalculateTaxAmount)) {
               $option['tax_amount'] = round($recalculateTaxAmount['tax_amount'], 2);
             }
