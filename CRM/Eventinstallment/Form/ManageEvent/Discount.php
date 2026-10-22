@@ -26,9 +26,6 @@ class CRM_Eventinstallment_Form_ManageEvent_Discount extends
     parent::preProcess();
     // current contribution page id
     $this->_id = CRM_Utils_Request::retrieve('id', 'Positive', $this);
-    if ($this->_id) {
-      $this->_doneUrl = CRM_Utils_System::url(CRM_Utils_System::currentPath(), "action=update&reset=1&id={$this->_id}");
-    }
   }
   public function buildQuickForm() {
     $groups = ['' => '-- select --'] + CRM_Core_PseudoConstant::nestedGroup(textFormat: 'plain');

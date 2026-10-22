@@ -2,7 +2,7 @@
     <div class="content">
             {if $frequency_interval > 1}
                 <p>
-                    {ts 1=$frequency_interval 2=$frequency_unit 3=$installments, 4=$installmentAmount}I want to pay %4 every %1 %2s for %3 installments.{/ts}
+                    {ts 1=$frequency_interval 2=$frequency_unit 3=$installments 4=$installmentAmount}I want to pay %4 every %1 %2s for %3 installments.{/ts}
                 </p>
             {else}
                 <p>

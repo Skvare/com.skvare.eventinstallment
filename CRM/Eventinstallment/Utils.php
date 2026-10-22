@@ -65,7 +65,7 @@ class CRM_Eventinstallment_Utils {
       ]);
       $parents_can_register = !empty($eventDetails["custom_$fid"]);
     }
-    catch (CiviCRM_API3_Exception $e) {
+    catch (CRM_Core_Exception $e) {
       $parents_can_register = FALSE;
     }
 
@@ -341,7 +341,7 @@ class CRM_Eventinstallment_Utils {
           continue;
         }
       }
-      catch (CiviCRM_API3_Exception $exception) {
+      catch (CRM_Core_Exception $exception) {
         continue;
       }
 
@@ -676,9 +676,9 @@ class CRM_Eventinstallment_Utils {
     }
     // check parent participant for recurring
     if ($checkParentRegistration) {
-      $parentParticiapntID = CRM_Core_DAO::getFieldValue('CRM_Event_DAO_Participant', $objectId, 'registered_by_id');
+      $parentParticiapntID = CRM_Core_DAO::getFieldValue('CRM_Event_DAO_Participant', $participantID, 'registered_by_id');
       if ($parentParticiapntID) {
-        return self::isRecurring($participantID, FALSE);
+        return self::isRecurring($parentParticiapntID, FALSE);
       }
     }
 
@@ -885,13 +885,13 @@ class CRM_Eventinstallment_Utils {
    */
   public static function getDiscountAmount($eventID, $option_id, $childNumber, $isJccMember = FALSE) {
     $defaultsConfig = CRM_Eventinstallment_Utils::getSettingsConfig($eventID);
-    $eventFeeDetails = $defaultsConfig['events_rule'][$option_id];
+    $eventFeeDetails = $defaultsConfig['events_rule'][$option_id] ?? [];
     $currentDate = strtotime(date('YmdHis'));
     //$currentDate = strtotime("15 September 2021");
     //$currentDate = strtotime("15 January 2022");
     //$currentDate = strtotime("15 March 2022");
     $childNumber = ($childNumber >= 4) ? 4 : $childNumber;
-    $defaultFee = $sellFee = $eventFeeDetails['regular'];
+    $defaultFee = $sellFee = $eventFeeDetails['regular'] ?? NULL;
     $siblingDiscountFee = 0;
     $discountName = '';
     foreach ($eventFeeDetails as $discountDetails) {
@@ -989,7 +989,7 @@ class CRM_Eventinstallment_Utils {
     $fieldMapping = [];
     $relatedObjects = [];
     foreach ($fieldsToFetch as &$fieldName) {
-      @ list($field, $location, $type) = explode("-", $fieldName);
+      [$field, $location, $type] = array_pad(explode("-", $fieldName), 3, NULL);
 
       if ($location == "Primary") {
         if (strpos($field, "custom") !== FALSE) {
@@ -1079,6 +1079,7 @@ class CRM_Eventinstallment_Utils {
     catch (Exception $e) {
       // probably no custom fields, which is fine.
       trigger_error($e->getMessage());
+      $api = ['values' => []];
     }
     $field_ids = [];
     foreach (array_keys($api['values']) as $id) {
@@ -1204,7 +1205,7 @@ class CRM_Eventinstallment_Utils {
     if (!$form->elementExists($buttonName)) {
       $form->addElement('submit', $buttonName, ts('Check for discount'), ['formnovalidate' => 1, 'style' => 'display:none;']);
       $template = CRM_Core_Smarty::singleton();
-      $bhfe = $template->get_template_vars('beginHookFormElements');
+      $bhfe = $template->getTemplateVars('beginHookFormElements');
       if (!$bhfe) {
         $bhfe = [];
       }
@@ -1216,7 +1217,7 @@ class CRM_Eventinstallment_Utils {
 
   /**
    * @return array
-   * @throws CiviCRM_API3_Exception
+   * @throws CRM_Core_Exception
    */
   public static function membershipTypeCurrentDomain() {
     $result = civicrm_api3('MembershipType', 'get', [
@@ -1240,7 +1241,7 @@ class CRM_Eventinstallment_Utils {
   public static function roundupMoneyForInstallment($totalAmount, $installments) {
     $installmentAmount = $totalAmount / $installments;
     $numberOfPlaces = 2;
-    $money = Money::of($installmentAmount, CRM_Core_Config::singleton()
+    $money = Money::of((string) $installmentAmount, CRM_Core_Config::singleton()
       ->defaultCurrency, new CustomContext($numberOfPlaces), RoundingMode::CEILING);
     $formatter = new \NumberFormatter('en_US', NumberFormatter::DECIMAL);
     $formatter->setAttribute(\NumberFormatter::MIN_FRACTION_DIGITS, $numberOfPlaces);

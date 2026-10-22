@@ -110,11 +110,10 @@ function eventinstallment_civicrm_buildForm($formName, &$form) {
       //$form->addElement('checkbox', 'is_recur_installments', ts('Maximum Offer installments'));
       $numericOptions = CRM_Core_SelectValues::getNumericOptions(2, 12);
       $form->add('select', 'is_recur_installments', ts('Maximum Offer installments'), $numericOptions, FALSE, ['class' => 'required']);
-      $params = ['id' => $form->getVar('_id')];
-      CRM_Event_BAO_Event::retrieve($params, $defaults);
-      if (!empty($defaults['recur_frequency_unit'])) {
+      $recurFrequencyUnit = $form->getVar('_id') ? CRM_Core_DAO::getFieldValue('CRM_Event_DAO_Event', $form->getVar('_id'), 'recur_frequency_unit') : NULL;
+      if (!empty($recurFrequencyUnit)) {
         $defaultsLocal = [];
-        $defaultsLocal['recur_frequency_unit'] = array_fill_keys(explode(CRM_Core_DAO::VALUE_SEPARATOR, $defaults['recur_frequency_unit']), '1');
+        $defaultsLocal['recur_frequency_unit'] = array_fill_keys(explode(CRM_Core_DAO::VALUE_SEPARATOR, $recurFrequencyUnit), '1');
         $form->setDefaults($defaultsLocal);
       }
     }
@@ -192,7 +191,7 @@ function eventinstallment_civicrm_buildForm($formName, &$form) {
     if (!$form->_values['event']['is_monetary']) {
       [$finalContactList, $childContacts, $parentContacts] = CRM_Eventinstallment_Utils::contactSequenceForRegistration($form);
       [$dontCare, $additionalPageNumber] = explode('_', $form->getVar('_name'));
-      $contactID = $finalContactList[$additionalPageNumber];
+      $contactID = $finalContactList[$additionalPageNumber] ?? NULL;
       $childNumber = 0;
       if (in_array($contactID, $childContacts)) {
         $childNumber = CRM_Utils_Array::key($contactID, $childContacts);
@@ -201,13 +200,13 @@ function eventinstallment_civicrm_buildForm($formName, &$form) {
       $_name = $form->getVar('_name');
       $participantNo = substr($_name, 12);
       $participantCnt = $participantNo;
-      $participantTot = $_params[0]['additional_participants'];
+      $participantTot = $_params[0]['additional_participants'] ?? 0;
       CRM_Utils_System::setTitle(ts('Register Child %1 of %2', [1 => $participantCnt, 2 => $participantTot]));
     }
     [$finalContactList, $childContacts, $parentContacts] = CRM_Eventinstallment_Utils::contactSequenceForRegistration($form);
     [$dontCare, $additionalPageNumber] = explode('_', $form->getVar('_name'));
-    $contactID = $finalContactList[$additionalPageNumber];
-    $data = CRM_Eventinstallment_Utils::getContactData(array_keys($form->_fields), $contactID);
+    $contactID = $finalContactList[$additionalPageNumber] ?? NULL;
+    $data = CRM_Eventinstallment_Utils::getContactData(array_keys($form->_fields), $contactID) ?: [];
     $data['contact_id'] = $contactID;
     $form->add('hidden', 'contact_id', $contactID);
     $form->setDefaults($data);
@@ -245,11 +244,11 @@ function eventinstallment_civicrm_buildForm($formName, &$form) {
     $params = $form->getVar('_params');
     // ThankYou does not declare $_totalAmount; use the total Confirm stored.
     $totalAmount = ($formName == 'CRM_Event_Form_Registration_Confirm') ? $form->getVar('_totalAmount') : $form->get('totalAmount');
-    if (!empty($params['0']['is_recur'])) {
+    if (!empty($params['0']['is_recur']) && !empty($params['0']['installments'])) {
       $template = CRM_Core_Smarty::singleton();
       $template->assign('is_recur', TRUE);
-      $template->assign('frequency_interval', $params['0']['frequency_interval']);
-      $template->assign('frequency_unit', $params['0']['frequency_unit']);
+      $template->assign('frequency_interval', $params['0']['frequency_interval'] ?? 1);
+      $template->assign('frequency_unit', $params['0']['frequency_unit'] ?? NULL);
       $template->assign('installments', $params['0']['installments']);
       $installmentAmount = CRM_Eventinstallment_Utils::roundupMoneyForInstallment($totalAmount, $params['0']['installments']);
       $installmentAmount = CRM_Utils_Money::format($installmentAmount);
@@ -260,7 +259,7 @@ function eventinstallment_civicrm_buildForm($formName, &$form) {
     // and changing the labels too.
     if ($isConfiguredEvent && $session->get('parents_not_allowed')) {
       $template = CRM_Core_Smarty::singleton();
-      $part = $template->get_template_vars('part');
+      $part = $template->getTemplateVars('part');
       $part[0]['info'] = ' ( Parent will be register as Non Attending Participant.)';
       $template->assign('part', $part);
       CRM_Core_Region::instance('page-body')->add(['template' => 'CRM/Eventinstallment/LineItem.tpl']);
@@ -272,7 +271,7 @@ function eventinstallment_civicrm_buildForm($formName, &$form) {
     if ($form->_action & CRM_Core_Action::UPDATE) {
       $domainID = CRM_Core_Config::domainID();
       $settings = Civi::settings($domainID);
-      if (in_array($form->_defaultValues['html_type'], ['Select', 'Radio'])) {
+      if (in_array($form->_defaultValues['html_type'] ?? NULL, ['Select', 'Radio'])) {
         $form->addElement('checkbox', 'pricefield_for_discount', ts('Is this Discount Field'));
         $form->setDefaults(['pricefield_for_discount' => $settings->get('pricefield_for_discount_fid_' . $form->getVar('_fid'))]);
       }
@@ -311,7 +310,7 @@ function eventinstallment_civicrm_validateForm($formName, &$fields, &$files, &$f
     if (empty($childContacts)) {
       $errors['additional_participants'] = ts('Select at least one child');
     }
-    elseif (count($childContacts) != $fields['additional_participants']) {
+    elseif (count($childContacts) != ($fields['additional_participants'] ?? 0)) {
       CRM_Core_Error::debug_var('Validation Error', 'The child count and additional participant count are not the same. ID - ' . $currentContactID);
       $errors['additional_participants'] = ts('We detected a validation issue; please enter your credit card details manually.');
     }
@@ -321,7 +320,7 @@ function eventinstallment_civicrm_validateForm($formName, &$fields, &$files, &$f
       }
       $session = CRM_Core_Session::singleton();
       $session->set('event_skip_main_parent', TRUE);
-      foreach ($form->_priceSet['fields'] as $fid => $val) {
+      foreach ($form->_priceSet['fields'] ?? [] as $fid => $val) {
         $form->setElementError('price_' . $fid, NULL);
         $fields['price_' . $fid] = 0;
       }
@@ -339,8 +338,7 @@ function eventinstallment_civicrm_postProcess($formName, &$form) {
     $submit = $form->getVar('_submitValues');
     if (!empty($form->getVar('_id'))) {
       $eventID = $form->getVar('_id');
-      $submit['recur_frequency_unit'] = (is_array($submit['recur_frequency_unit']) && !empty($submit['recur_frequency_unit'])) ? implode(CRM_Core_DAO::VALUE_SEPARATOR, array_keys($submit['recur_frequency_unit'])) : '';
-      $submit['recur_frequency_unit'] = $submit['recur_frequency_unit'] ?? '';
+      $submit['recur_frequency_unit'] = (is_array($submit['recur_frequency_unit'] ?? NULL) && !empty($submit['recur_frequency_unit'])) ? implode(CRM_Core_DAO::VALUE_SEPARATOR, array_keys($submit['recur_frequency_unit'])) : '';
       $submit['is_recur_interval'] = $submit['is_recur_interval'] ?? 0;
       $submit['is_recur_installments'] = $submit['is_recur_installments'] ?? 0;
       $submit['is_recur'] = $submit['is_recur'] ?? 0;
@@ -348,7 +346,8 @@ function eventinstallment_civicrm_postProcess($formName, &$form) {
         1 => [$submit['recur_frequency_unit'], 'String'],
         2 => [$submit['is_recur_interval'], 'Boolean'],
         3 => [$submit['is_recur_installments'], 'Integer'],
-        4 => [$submit['is_recur'], 'Boolean']
+        4 => [$submit['is_recur'], 'Boolean'],
+        5 => [$eventID, 'Positive'],
       ];
 
       $query = "
@@ -357,7 +356,7 @@ function eventinstallment_civicrm_postProcess($formName, &$form) {
         is_recur_interval = %2,
         is_recur_installments = %3,
         is_recur = %4
-      WHERE id = $eventID
+      WHERE id = %5
       ";
       CRM_Core_DAO::executeQuery($query, $param);
     }
@@ -412,18 +411,16 @@ function eventinstallment_civicrm_postProcess($formName, &$form) {
     $submit = $form->getVar('_submitValues');
     $addParticipantNum = substr($form->getVar('_name'), 12);
     $_params = $form->get('params');
-    $_params[$addParticipantNum]['contact_id'] = $submit['contact_id'];
+    $_params[$addParticipantNum]['contact_id'] = $submit['contact_id'] ?? NULL;
     $form->set('params', $_params);
   }
 
   if (in_array($formName, ['CRM_Price_Form_Field'])) {
     $domainID = CRM_Core_Config::domainID();
     $settings = Civi::settings($domainID);
-    if ($form->getVar('_fid')) {
-      $id = $form->getVar('_fid');
-    }
+    $id = $form->getVar('_fid');
     if ($id) {
-      if (in_array($form->_submitValues['html_type'], ['Select', 'Radio'])) {
+      if (in_array($form->_submitValues['html_type'] ?? NULL, ['Select', 'Radio'])) {
         $pricefield_for_discount = $form->_submitValues['pricefield_for_discount'] ?? NULL;
         $domainID = CRM_Core_Config::domainID();
         $settings = Civi::settings($domainID);
@@ -503,7 +500,7 @@ function eventinstallment_civicrm_buildAmount($pageType, &$form, &$amounts) {
     if ($formName == 'CRM_Event_Form_Registration_AdditionalParticipant') {
       [$finalContactList, $childContacts, $parentContacts] = CRM_Eventinstallment_Utils::contactSequenceForRegistration($form);
       [$dontCare, $additionalPageNumber] = explode('_', $form->getVar('_name'));
-      $contactID = $finalContactList[$additionalPageNumber];
+      $contactID = $finalContactList[$additionalPageNumber] ?? NULL;
       $childNumber = 0;
       if (in_array($contactID, $childContacts)) {
         $childNumber = CRM_Utils_Array::key($contactID, $childContacts);
@@ -512,7 +509,7 @@ function eventinstallment_civicrm_buildAmount($pageType, &$form, &$amounts) {
       $_name = $form->getVar('_name');
       $participantNo = substr($_name, 12);
       $participantCnt = $participantNo;
-      $participantTot = $_params[0]['additional_participants'];
+      $participantTot = $_params[0]['additional_participants'] ?? 0;
       CRM_Utils_System::setTitle(ts('Register Child %1 of %2', [1 => $participantCnt, 2 => $participantTot]));
 
       /*
@@ -541,7 +538,7 @@ function eventinstallment_civicrm_buildAmount($pageType, &$form, &$amounts) {
     //echo '<pre>$childNumber - '; print_r($childNumber); echo '</pre>';
     $originalAmounts = $amounts;
     foreach ($amounts as $fee_id => &$fee) {
-      if (!is_array($fee['options'])) {
+      if (!is_array($fee['options'] ?? NULL)) {
         continue;
       }
       foreach ($fee['options'] as $option_id => &$option) {

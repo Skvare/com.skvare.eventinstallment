@@ -4,7 +4,7 @@
         {counter start=0 skip=1 print=false}
         {foreach from=$relatedContacts key=contactID item=contact}
             {if $contact.is_parent}
-            {assign var="elementName" value=contacts_parent_$contactID}
+            {assign var="elementName" value="contacts_parent_`$contactID`"}
                 {if $contactID eq $currentContactID}
                     {assign var="currentUser" value='currentUser'}
                 {/if}
@@ -16,7 +16,7 @@
         {/foreach}
         {foreach from=$relatedContacts key=contactID item=contact}
             {if ! $contact.is_parent}
-                {assign var="elementName" value=contacts_child_$contactID}
+                {assign var="elementName" value="contacts_child_`$contactID`"}
             <tr id='rowid{$contactID}' class="{cycle values="odd-row,even-row"}">
                 <td>{$form.$elementName.html} - {$form.$elementName.label}</td>
                 <td>{$contact.explanation}</td>
