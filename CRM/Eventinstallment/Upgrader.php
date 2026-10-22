@@ -10,10 +10,31 @@ class CRM_Eventinstallment_Upgrader extends CRM_Extension_Upgrader_Base {
   // upgrade tasks. They are executed in order (like Drupal's hook_update_N).
 
   /**
-   * Example: Run an external SQL script when the module is installed.
+   * Adds the installment columns to civicrm_event.
    *
+   * Their metadata is declared in eventinstallment_alter_event_fields(). The
+   * columns are intentionally left in place on uninstall so event installment
+   * settings survive a reinstall.
+   */
   public function install() {
-    $this->executeSqlFile('sql/myinstall.sql');
+    self::addEventColumns();
+  }
+
+  /**
+   * Adds any missing installment columns to civicrm_event.
+   */
+  public static function addEventColumns() {
+    $columns = [
+      'is_recur' => "tinyint DEFAULT 0 COMMENT 'if true - allows recurring contributions'",
+      'recur_frequency_unit' => "varchar(128) DEFAULT NULL COMMENT 'Supported recurring frequency units.'",
+      'is_recur_interval' => "tinyint DEFAULT 0 COMMENT 'if true - supports recurring intervals'",
+      'is_recur_installments' => "int DEFAULT 0 COMMENT 'if true - asks user for recurring installments'",
+    ];
+    foreach ($columns as $column => $definition) {
+      if (!CRM_Core_BAO_SchemaHandler::checkIfFieldExists('civicrm_event', $column, FALSE)) {
+        CRM_Core_DAO::executeQuery("ALTER TABLE `civicrm_event` ADD `$column` $definition", [], TRUE, NULL, FALSE, FALSE);
+      }
+    }
   }
 
   /**
