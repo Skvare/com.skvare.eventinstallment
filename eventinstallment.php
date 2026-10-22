@@ -12,6 +12,7 @@ use CRM_Eventinstallment_ExtensionUtil as E;
  */
 function eventinstallment_civicrm_config(&$config) {
   _eventinstallment_civix_civicrm_config($config);
+  Civi::dispatcher()->addListener('civi.entity.fields::Event', 'eventinstallment_alter_event_fields');
 }
 
 /**
@@ -133,81 +134,51 @@ function eventinstallment_civicrm_themes(&$themes) {
 }
 
 /**
- * Implements hook_civicrm_entityTypes().
- *
- * Declare entity types provided by this module.
- *
- * @link https://docs.civicrm.org/dev/en/latest/hooks/hook_civicrm_entityTypes
+ * Adds recurring-payment fields to Event field metadata.
  */
-function eventinstallment_civicrm_entityTypes(&$entityTypes) {
-  $entityTypes['CRM_Event_DAO_Event']['fields_callback'][]
-    = function ($class, &$fields) {
-    $fields['is_recur'] = [
-      'name' => 'is_recur',
-      'type' => CRM_Utils_Type::T_BOOLEAN,
-      'title' => E::ts('Is Recurring'),
-      'description' => E::ts('if true - allows recurring event payment.'),
-      'where' => 'civicrm_event.is_recur',
-      'default' => '0',
-      'table_name' => 'civicrm_event',
-      'entity' => 'Event',
-      'bao' => 'CRM_Event_BAO_Event',
-      'localizable' => 0,
-      'add' => '5.35',
-    ];
+function eventinstallment_alter_event_fields(\Civi\Core\Event\GenericHookEvent $event) {
+  $event->fields['is_recur'] = [
+    'title' => E::ts('Is Recurring'),
+    'description' => E::ts('if true - allows recurring event payment.'),
+    'sql_type' => 'boolean',
+    'input_type' => 'CheckBox',
+    'default' => FALSE,
+    'add' => '5.35',
+  ];
 
-    $fields['recur_frequency_unit'] = [
-      'name' => 'recur_frequency_unit',
-      'type' => CRM_Utils_Type::T_STRING,
-      'title' => E::ts('Recurring Frequency'),
-      'description' => E::ts('Supported recurring frequency units.'),
-      'maxlength' => 128,
-      'size' => CRM_Utils_Type::HUGE,
-      'where' => 'civicrm_event.recur_frequency_unit',
-      'table_name' => 'civicrm_event',
-      'entity' => 'Event',
-      'bao' => 'CRM_Event_BAO_Event',
-      'localizable' => 0,
-      'serialize' => CRM_Core_DAO::SERIALIZE_SEPARATOR_TRIMMED,
-      'html' => [
-        'type' => 'Select',
-      ],
-      'pseudoconstant' => [
-        'optionGroupName' => 'recur_frequency_units',
-        'keyColumn' => 'name',
-        'optionEditPath' => 'civicrm/admin/options/recur_frequency_units',
-      ],
-      'add' => '5.35',
-    ];
+  $event->fields['recur_frequency_unit'] = [
+    'title' => E::ts('Recurring Frequency'),
+    'description' => E::ts('Supported recurring frequency units.'),
+    'sql_type' => 'varchar(128)',
+    'input_type' => 'Select',
+    'input_attrs' => [
+      'multiple' => TRUE,
+    ],
+    'serialize' => CRM_Core_DAO::SERIALIZE_SEPARATOR_TRIMMED,
+    'pseudoconstant' => [
+      'option_group_name' => 'recur_frequency_units',
+      'key_column' => 'name',
+    ],
+    'add' => '5.35',
+  ];
 
-    $fields['is_recur_interval'] = [
-      'name' => 'is_recur_interval',
-      'type' => CRM_Utils_Type::T_BOOLEAN,
-      'title' => E::ts('Support Recurring Intervals'),
-      'description' => E::ts('if true - supports recurring intervals'),
-      'where' => 'civicrm_event.is_recur_interval',
-      'default' => '0',
-      'table_name' => 'civicrm_event',
-      'entity' => 'Event',
-      'bao' => 'CRM_Event_BAO_Event',
-      'localizable' => 0,
-      'add' => '5.35',
-    ];
+  $event->fields['is_recur_interval'] = [
+    'title' => E::ts('Support Recurring Intervals'),
+    'description' => E::ts('if true - supports recurring intervals'),
+    'sql_type' => 'boolean',
+    'input_type' => 'CheckBox',
+    'default' => FALSE,
+    'add' => '5.35',
+  ];
 
-    $fields['is_recur_installments'] = [
-      'name' => 'is_recur_installments',
-      'type' => CRM_Utils_Type::T_INT,
-      'title' => E::ts('Recurring Installments?'),
-      'description' => E::ts('if true - asks user for recurring installments'),
-      'where' => 'civicrm_event.is_recur_installments',
-      'default' => '0',
-      'table_name' => 'civicrm_event',
-      'entity' => 'Event',
-      'bao' => 'CRM_Event_BAO_Event',
-      'localizable' => 0,
-      'add' => '5.35',
-    ];
-  };
+  $event->fields['is_recur_installments'] = [
+    'title' => E::ts('Recurring Installments?'),
+    'description' => E::ts('if true - asks user for recurring installments'),
+    'sql_type' => 'int',
+    'input_type' => 'Number',
+    'default' => 0,
+    'add' => '5.35',
+  ];
 }
 
 

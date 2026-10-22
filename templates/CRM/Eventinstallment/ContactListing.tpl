@@ -51,6 +51,9 @@
         }
         console.log('additionalParticiapnt 2: ' + additionalParticiapnt);
         CRM.$("#additional_participants").val(additionalParticiapnt).trigger("change");
+        if (CRM.$('#event_recurring_block').length) {
+           CRM.$('fieldset#priceset').show();
+        }
     }
 
     CRM.$('[id^="contacts_"]').change(function(){
@@ -90,6 +93,9 @@
             CRM.$('fieldset.payment_options-group').show();
             CRM.$('div#billing-payment-block').show();
             CRM.$('.payment_processor-section').show();
+            if (CRM.$('#event_recurring_block').length) {
+               CRM.$('fieldset#priceset').show();
+            }
 
         }
     }
