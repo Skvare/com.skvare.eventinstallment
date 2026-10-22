@@ -77,10 +77,13 @@ class CRM_Eventinstallment_Utils {
    */
   public static function getAdditionalDiscount($form, $noCal = FALSE) {
     $session = CRM_Core_Session::singleton();
-    $params = $form->getVar('_params');
-    $totalAmount = $form->getVar('_totalAmount');
+    // Only Confirm declares $_totalAmount; ThankYou ($noCal) shows the total
+    // Confirm stored in the session.
+    $totalAmount = $noCal ? $form->get('totalAmount') : $form->getVar('_totalAmount');
     $lineItem = $form->getVar('_lineItem');
-    $_amount = $form->getVar('_amount');
+    // Confirm::$_amount is private since 6.x, so add the discount rows to the
+    // template's amounts list instead.
+    $amounts = $form->getTemplateVars('amounts') ?: [];
     $_values = $form->getVar('_values');
     $resultContribution = civicrm_api3('PriceField', 'get', [
       'sequential' => 1,
@@ -149,8 +152,8 @@ class CRM_Eventinstallment_Utils {
         $item = [];
         $item['qty'] = 1;
         $item['financial_type_id'] = $_values['event']['financial_type_id'];
-        $item['price_field_id'] = $special_Discount['price_field_id'] ?? '';
-        $item['price_field_value_id'] = $special_Discount['id'] ?? '';
+        $item['price_field_id'] = $financial_Assistant_Discount['price_field_id'] ?? '';
+        $item['price_field_value_id'] = $financial_Assistant_Discount['id'] ?? '';
         $item['unit_price'] = $discountAmount;
         $item['line_total'] = $discountAmount;
         $item['label'] = $newLabel;
@@ -159,7 +162,7 @@ class CRM_Eventinstallment_Utils {
         if (!$noCal) {
           $totalAmount = $totalAmount + $discountAmount;
         }
-        $_amount[] = ['amount' => $discountAmount, 'label' => $newLabel];
+        $amounts[] = ['amount' => $discountAmount, 'label' => $newLabel];
       }
     }
 
@@ -173,8 +176,8 @@ class CRM_Eventinstallment_Utils {
         $item = [];
         $item['qty'] = 1;
         $item['financial_type_id'] = $_values['event']['financial_type_id'];
-        $item['price_field_id'] = $financial_Assistant_Discount['price_field_id'] ?? '';
-        $item['price_field_value_id'] = $financial_Assistant_Discount['id'] ?? '';
+        $item['price_field_id'] = $special_Discount['price_field_id'] ?? '';
+        $item['price_field_value_id'] = $special_Discount['id'] ?? '';
         $item['unit_price'] = $discountAmount;
         $item['line_total'] = $discountAmount;
         $item['label'] = $newLabel;
@@ -183,7 +186,7 @@ class CRM_Eventinstallment_Utils {
         if (!$noCal) {
           $totalAmount = $totalAmount + $discountAmount;
         }
-        $_amount[] = ['amount' => $discountAmount, 'label' => $newLabel];
+        $amounts[] = ['amount' => $discountAmount, 'label' => $newLabel];
       }
     }
 
@@ -195,11 +198,12 @@ class CRM_Eventinstallment_Utils {
     $form->setVar('_lineItem', $lineItem);
     $form->set('_lineItem', $lineItem);
     $form->assign('lineItem', $lineItem);
-    $form->setVar('_amount', $_amount);
-    $form->assign('amounts', $_amount);
-    $form->setVar('_totalAmount', $totalAmount);
+    $form->assign('amounts', $amounts);
+    if (!$noCal) {
+      $form->setVar('_totalAmount', $totalAmount);
+      $form->set('totalAmount', $totalAmount);
+    }
     $form->assign('totalAmount', $totalAmount);
-    $form->set('totalAmount', $totalAmount);
   }
 
   /**
