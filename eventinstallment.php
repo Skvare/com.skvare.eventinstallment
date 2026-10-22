@@ -234,7 +234,7 @@ function eventinstallment_civicrm_buildForm($formName, &$form) {
     }
     $currentContactID = $form->getLoggedInUserContactID();
 
-    CRM_Eventinstallment_Utils::_add_reload_textfield($form);
+    //CRM_Eventinstallment_Utils::_add_reload_textfield($form);
 
     $relatedContacts = CRM_Eventinstallment_Utils::relatedContactsListing($form);
     //echo '<pre>'; print_r($relatedContacts); echo '</pre>';
@@ -307,6 +307,9 @@ function eventinstallment_civicrm_buildForm($formName, &$form) {
     $data['contact_id'] = $contactID;
     $form->add('hidden', 'contact_id', $contactID);
     $form->setDefaults($data);
+    // Why this code here : customer not yet started using eventbutton label extension.
+    CRM_Core_Region::instance('page-body')->add(
+      ['script' => "cj('button[name=_qf_Participant_" . $additionalPageNumber . "_next_skip]').hide();"]);
   }
   elseif (in_array($formName, ['CRM_Event_Form_Registration_Confirm', 'CRM_Event_Form_Registration_ThankYou'])) {
     $session = CRM_Core_Session::singleton();
