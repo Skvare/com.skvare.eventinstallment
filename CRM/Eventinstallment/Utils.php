@@ -265,7 +265,7 @@ class CRM_Eventinstallment_Utils {
     $group_members[$userID] = $civi_primary_contact;
 
     $defaults = CRM_Eventinstallment_Utils::getSettingsConfig($eventId);
-    $relationships = $defaults['events_relationships'];
+    $relationships = (array) ($defaults['events_relationships'] ?? []);
     $rab = [];
     $rba = [];
 
@@ -273,16 +273,19 @@ class CRM_Eventinstallment_Utils {
     $parents_can_register = self::canParentRegisterforEvent($eventId);
 
     foreach ($relationships as $r) {
-      @ list($rType, $dir) = explode("_", $r, 2);
+      [$rType, $dir] = array_pad(explode("_", $r, 2), 2, NULL);
       if ($dir == NULL) {
         $rab[] = $rType;
         $rba[] = $rType;
       }
-      elseif ($dir = "a_b") {
-        $rab[] = $rType;
-      }
       else {
-        $rba[] = $rType;
+        // Directional types are always matched with the logged-in user as
+        // contact B (e.g. the "Parent of" side of "Child of"), whichever
+        // direction was selected. This was the effective behaviour of the
+        // original `elseif ($dir = "a_b")`; event configurations that select
+        // both "Child of" and "Parent of" rely on it to list the user's
+        // children rather than the user's own parents.
+        $rab[] = $rType;
       }
     }
 
