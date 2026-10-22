@@ -242,8 +242,9 @@ function eventinstallment_civicrm_buildForm($formName, &$form) {
     }
 
     $params = $form->getVar('_params');
-    // ThankYou does not declare $_totalAmount; use the total Confirm stored.
-    $totalAmount = ($formName == 'CRM_Event_Form_Registration_Confirm') ? $form->getVar('_totalAmount') : $form->get('totalAmount');
+    // ThankYou does not declare $_totalAmount and has already reset the
+    // wizard session; use the total core assigned to the template.
+    $totalAmount = ($formName == 'CRM_Event_Form_Registration_Confirm') ? $form->getVar('_totalAmount') : $form->getTemplateVars('totalAmount');
     if (!empty($params['0']['is_recur']) && !empty($params['0']['installments'])) {
       $template = CRM_Core_Smarty::singleton();
       $template->assign('is_recur', TRUE);

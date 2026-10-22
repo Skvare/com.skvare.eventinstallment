@@ -77,9 +77,10 @@ class CRM_Eventinstallment_Utils {
    */
   public static function getAdditionalDiscount($form, $noCal = FALSE) {
     $session = CRM_Core_Session::singleton();
-    // Only Confirm declares $_totalAmount; ThankYou ($noCal) shows the total
-    // Confirm stored in the session.
-    $totalAmount = $noCal ? $form->get('totalAmount') : $form->getVar('_totalAmount');
+    // Only Confirm declares $_totalAmount. On ThankYou ($noCal) the wizard
+    // session is already reset when buildForm hooks run, so use the (already
+    // discounted) total core assigned to the template.
+    $totalAmount = $noCal ? $form->getTemplateVars('totalAmount') : $form->getVar('_totalAmount');
     $lineItem = $form->getVar('_lineItem');
     // Confirm::$_amount is private since 6.x, so add the discount rows to the
     // template's amounts list instead.
@@ -135,6 +136,18 @@ class CRM_Eventinstallment_Utils {
       array_unshift($lineItem, []);
     }
     $originalTotalAmount = $totalAmount;
+    if ($noCal) {
+      // Discounts are a share of the undiscounted total: add up the
+      // participant line items, as Confirm did.
+      $originalTotalAmount = 0;
+      foreach ((array) $lineItem as $items) {
+        foreach ((array) $items as $item) {
+          if (is_array($item)) {
+            $originalTotalAmount += ($item['line_total'] ?? 0) + ($item['tax_amount'] ?? 0);
+          }
+        }
+      }
+    }
     if (!empty($defaults['events_financial_discount_group'])
       && !empty($defaults['events_financial_discount_group_discount_amount'])
       && !empty($defaults['events_financial_discount_group_discount_type'])
