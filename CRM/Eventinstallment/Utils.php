@@ -768,12 +768,20 @@ class CRM_Eventinstallment_Utils {
   public static function getAllSettingConfig() {
     $events = CRM_Event_BAO_Event::getEvents(1, NULL, TRUE, FALSE);
     $domainID = CRM_Core_Config::domainID();
-    $sql = "SELECT value FROM `civicrm_setting` WHERE `name` LIKE 'events_config_{$domainID}_%'";
-    $dao = CRM_Core_DAO::executeQuery($sql);
+    // "_" is a LIKE wildcard, so escape it: unescaped, domain 1 also matched
+    // the configurations of domains 10-19.
+    $sql = "SELECT value FROM `civicrm_setting` WHERE `domain_id` = %1 AND `name` LIKE %2";
+    $dao = CRM_Core_DAO::executeQuery($sql, [
+      1 => [$domainID, 'Positive'],
+      2 => ["events\\_config\\_{$domainID}\\_%", 'String'],
+    ]);
     $configList = [];
     while ($dao->fetch()) {
       $eventTitle = '';
       $configSetting = CRM_Utils_String::unserialize($dao->value);
+      if (empty($configSetting['events_id'])) {
+        continue;
+      }
       $configList[$configSetting['events_id']]['event_id'] = $configSetting['events_id'];
       if (array_key_exists($configSetting['events_id'], $events)) {
         $eventTitle = $events[$configSetting['events_id']];
