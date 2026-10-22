@@ -1087,15 +1087,19 @@ class CRM_Eventinstallment_Utils {
       }
     }
     try {
-      $api = civicrm_api3('CustomField', 'get', [
-        'id' => [
-          'IN' => $field_ids,
-        ],
-        'custom_group_id' => [
-          'IN' => $group_ids,
-        ],
-        'return' => 'id',
-      ]);
+      $api = ['values' => []];
+      // An empty IN list is an API error; nothing to exclude in that case.
+      if (!empty($field_ids) && !empty($group_ids)) {
+        $api = civicrm_api3('CustomField', 'get', [
+          'id' => [
+            'IN' => $field_ids,
+          ],
+          'custom_group_id' => [
+            'IN' => $group_ids,
+          ],
+          'return' => 'id',
+        ]);
+      }
     }
     catch (Exception $e) {
       // probably no custom fields, which is fine.
