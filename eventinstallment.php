@@ -126,7 +126,12 @@ function eventinstallment_civicrm_buildForm($formName, &$form) {
     }
     $defaults = CRM_Eventinstallment_Utils::getSettingsConfig($eid);
     $session = CRM_Core_Session::singleton();
-    if (!in_array($eid, (array)$defaults['events_id'])) {
+    // Start each registration clean: these flags are set later in this
+    // registration (validateForm / postProcess) and must not carry over from
+    // an earlier one in the same session.
+    $session->set('event_skip_main_parent', FALSE);
+    $session->set('parents_not_allowed', FALSE);
+    if (!in_array($eid, (array) ($defaults['events_id'] ?? []))) {
       $session->set('is_jcc_member', FALSE);
 
       return;
@@ -181,7 +186,7 @@ function eventinstallment_civicrm_buildForm($formName, &$form) {
   elseif($formName == 'CRM_Event_Form_Registration_AdditionalParticipant') {
     $eid = $form->getVar('_eventId');
     $defaults = CRM_Eventinstallment_Utils::getSettingsConfig($eid);
-    if (!in_array($eid, (array)$defaults['events_id'])) {
+    if (!in_array($eid, (array) ($defaults['events_id'] ?? []))) {
       return;
     }
     if (!$form->_values['event']['is_monetary']) {
@@ -212,21 +217,21 @@ function eventinstallment_civicrm_buildForm($formName, &$form) {
   }
   elseif (in_array($formName, ['CRM_Event_Form_Registration_Confirm', 'CRM_Event_Form_Registration_ThankYou'])) {
     $session = CRM_Core_Session::singleton();
+    $eid = $form->getVar('_eventId');
+    $defaults = CRM_Eventinstallment_Utils::getSettingsConfig($eid);
+    $isConfiguredEvent = in_array($eid, (array) ($defaults['events_id'] ?? []));
     if ($formName == 'CRM_Event_Form_Registration_Confirm') {
-      if ($form->_values['event']['is_monetary']) {
+      if ($isConfiguredEvent && $form->_values['event']['is_monetary']) {
         CRM_Eventinstallment_Utils::getAdditionalDiscount($form);
       }
     }
     else {
+      if (!$isConfiguredEvent) {
+        return;
+      }
       if ($form->_values['event']['is_monetary']) {
         CRM_Eventinstallment_Utils::getAdditionalDiscount($form, TRUE);
       }
-      $eid = $form->getVar('_eventId');
-      $defaults = CRM_Eventinstallment_Utils::getSettingsConfig($eid);
-      if (!in_array($eid, (array)$defaults['events_id'])) {
-        return;
-      }
-      $session = CRM_Core_Session::singleton();
       if ($session->get('parents_not_allowed') && $form->getVar('_participantId')) {
         $form->getVar('_participantId');
         $result = civicrm_api3('ParticipantStatusType', 'getvalue', [
@@ -238,8 +243,8 @@ function eventinstallment_civicrm_buildForm($formName, &$form) {
     }
 
     $params = $form->getVar('_params');
-    $totalAmount = $form->getVar('_totalAmount');
-    //$_amount = $form->getVar('_amount');
+    // ThankYou does not declare $_totalAmount; use the total Confirm stored.
+    $totalAmount = ($formName == 'CRM_Event_Form_Registration_Confirm') ? $form->getVar('_totalAmount') : $form->get('totalAmount');
     if (!empty($params['0']['is_recur'])) {
       $template = CRM_Core_Smarty::singleton();
       $template->assign('is_recur', TRUE);
@@ -253,7 +258,7 @@ function eventinstallment_civicrm_buildForm($formName, &$form) {
     }
     // To avoid confusion, changing removing parent name as first participant
     // and changing the labels too.
-    if ($session->get('parents_not_allowed')) {
+    if ($isConfiguredEvent && $session->get('parents_not_allowed')) {
       $template = CRM_Core_Smarty::singleton();
       $part = $template->get_template_vars('part');
       $part[0]['info'] = ' ( Parent will be register as Non Attending Participant.)';
@@ -286,7 +291,7 @@ function eventinstallment_civicrm_validateForm($formName, &$fields, &$files, &$f
   elseif ($formName == 'CRM_Event_Form_Registration_Register') {
     $eventId = $form->getVar('_eventId');
     $defaults = CRM_Eventinstallment_Utils::getSettingsConfig($eventId);
-    if (!in_array($eventId, (array)$defaults['events_id'])) {
+    if (!in_array($eventId, (array) ($defaults['events_id'] ?? []))) {
       return;
     }
     $parents_can_register = CRM_Eventinstallment_Utils::canParentRegisterforEvent($eventId);
@@ -360,7 +365,7 @@ function eventinstallment_civicrm_postProcess($formName, &$form) {
   elseif ($formName == "CRM_Event_Form_Registration_Register") {
     $eid = $form->getVar('_eventId');
     $defaults = CRM_Eventinstallment_Utils::getSettingsConfig($eid);
-    if (!in_array($eid, (array)$defaults['events_id'])) {
+    if (!in_array($eid, (array) ($defaults['events_id'] ?? []))) {
       return;
     }
     $currentContactID = $form->getLoggedInUserContactID();
@@ -384,7 +389,7 @@ function eventinstallment_civicrm_postProcess($formName, &$form) {
   elseif (FALSE && $formName == "CRM_Event_Form_Registration_Confirm") {
     $eid = $form->getVar('_eventId');
     $defaults = CRM_Eventinstallment_Utils::getSettingsConfig($eid);
-    if (!in_array($eid, (array)$defaults['events_id'])) {
+    if (!in_array($eid, (array) ($defaults['events_id'] ?? []))) {
       return;
     }
     $session = CRM_Core_Session::singleton();
@@ -401,7 +406,7 @@ function eventinstallment_civicrm_postProcess($formName, &$form) {
   elseif ($formName == "CRM_Event_Form_Registration_AdditionalParticipant") {
     $eid = $form->getVar('_eventId');
     $defaults = CRM_Eventinstallment_Utils::getSettingsConfig($eid);
-    if (!in_array($eid, (array)$defaults['events_id'])) {
+    if (!in_array($eid, (array) ($defaults['events_id'] ?? []))) {
       return;
     }
     $submit = $form->getVar('_submitValues');
@@ -489,7 +494,7 @@ function eventinstallment_civicrm_buildAmount($pageType, &$form, &$amounts) {
     }
     $eid = $form->getVar('_eventId');
     $defaults = CRM_Eventinstallment_Utils::getSettingsConfig($eid);
-    if (!in_array($eid, (array)$defaults['events_id']) || empty($defaults['events_rule'])) {
+    if (!in_array($eid, (array) ($defaults['events_id'] ?? [])) || empty($defaults['events_rule'])) {
       return;
     }
 
@@ -612,7 +617,7 @@ function eventinstallment_civicrm_navigationMenu(&$menu) {
 function eventinstallment_civicrm_alterTemplateFile($formName, $form, $context, &$tplName) {
   if ($formName == 'CRM_Event_Form_Registration_Register' && $form->getVar('_eventId')) {
     $defaults = CRM_Eventinstallment_Utils::getSettingsConfig($form->getVar('_eventId'));
-    if (in_array($form->getVar('_eventId'), (array)$defaults['events_id'])) {
+    if (in_array($form->getVar('_eventId'), (array) ($defaults['events_id'] ?? []))) {
       if (!CRM_Utils_System::isUserLoggedIn()) {
         $config = CRM_Core_Config::singleton();
         $destination = $config->userSystem->getLoginDestination($form);

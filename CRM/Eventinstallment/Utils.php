@@ -756,7 +756,7 @@ class CRM_Eventinstallment_Utils {
     $domainID = CRM_Core_Config::domainID();
     $settings = Civi::settings($domainID);
 
-    return $settings->get('events_config_' . $domainID . '_' . $eventID);
+    return $settings->get('events_config_' . $domainID . '_' . $eventID) ?: [];
   }
 
   /**
