@@ -84,7 +84,7 @@ class CRM_Eventinstallment_Utils {
     // Confirm::$_amount is private since 6.x, so add the discount rows to the
     // template's amounts list instead.
     $amounts = $form->getTemplateVars('amounts') ?: [];
-    $_values = $form->getVar('_values');
+    $financialTypeID = $form->getEventValue('financial_type_id');
     $resultContribution = civicrm_api3('PriceField', 'get', [
       'sequential' => 1,
       'price_set_id' => $form->_priceSetId,
@@ -113,8 +113,8 @@ class CRM_Eventinstallment_Utils {
       }
     }
 
-    $currentContactID = $form->getLoggedInUserContactID();
-    $eid = $form->getVar('_eventId');
+    $currentContactID = CRM_Core_Session::getLoggedInContactID();
+    $eid = $form->getEventID();
 
 
     $defaults = CRM_Eventinstallment_Utils::getSettingsConfig($eid);
@@ -151,7 +151,7 @@ class CRM_Eventinstallment_Utils {
         ($originalTotalAmount, $contactResult[$defaults['events_financial_discount_group_discount_amount']], $type, 'Financial Assistance Discount');
         $item = [];
         $item['qty'] = 1;
-        $item['financial_type_id'] = $_values['event']['financial_type_id'];
+        $item['financial_type_id'] = $financialTypeID;
         $item['price_field_id'] = $financial_Assistant_Discount['price_field_id'] ?? '';
         $item['price_field_value_id'] = $financial_Assistant_Discount['id'] ?? '';
         $item['unit_price'] = $discountAmount;
@@ -175,7 +175,7 @@ class CRM_Eventinstallment_Utils {
         [$newTotalAmount, $discountAmount, $newLabel] = self::_calc_discount($originalTotalAmount, $defaults['events_special_discount_amount'], $type, 'Special Discount');
         $item = [];
         $item['qty'] = 1;
-        $item['financial_type_id'] = $_values['event']['financial_type_id'];
+        $item['financial_type_id'] = $financialTypeID;
         $item['price_field_id'] = $special_Discount['price_field_id'] ?? '';
         $item['price_field_value_id'] = $special_Discount['id'] ?? '';
         $item['unit_price'] = $discountAmount;
@@ -247,8 +247,8 @@ class CRM_Eventinstallment_Utils {
     $group_members = [];
 
     // Get logged in user Contact ID
-    $userID = $form->getLoggedInUserContactID();
-    $eventId = $form->getVar('_eventId');
+    $userID = CRM_Core_Session::getLoggedInContactID();
+    $eventId = $form->getEventID();
 
     $result = civicrm_api3('Event', 'get', [
       'id' => $eventId,
@@ -430,7 +430,6 @@ class CRM_Eventinstallment_Utils {
 
     $form->assign('is_recur_interval', CRM_Utils_Array::value('is_recur_interval', $form->_values['event']));
     $form->assign('is_recur_installments', CRM_Utils_Array::value('is_recur_installments', $form->_values['event']));
-    $paymentObject = $form->getVar('_paymentObject');
     $params = $form->_values['event'];
     $gotText = ts('Your recurring event fee will be processed automatically.');
     if ($params['is_recur_installments']) {
@@ -439,9 +438,7 @@ class CRM_Eventinstallment_Utils {
     if (!empty($params['is_email_receipt'])) {
       $gotText .= ' ' . ts('You will receive an email receipt for each recurring payment.');
     }
-    if ($paymentObject) {
-      $form->assign('recurringHelpText', $gotText);
-    }
+    $form->assign('recurringHelpText', $gotText);
 
     $form->add('checkbox', 'is_recur', ts('Check this box if you prefer dividing this fee into multiple payments'), NULL);
 
@@ -603,7 +600,7 @@ class CRM_Eventinstallment_Utils {
     $participantFields = CRM_Event_DAO_Participant::fields();
     $participantParams = [
       'contact_id' => $contactID,
-      'event_id' => $form->getVar('_eventId') ? $form->getVar('_eventId') : $params['event_id'],
+      'event_id' => $form->getEventID() ? $form->getEventID() : $params['event_id'],
       'role_id' => CRM_Utils_Array::value('participant_role_id', $params) ?: CRM_Event_BAO_Participant::getDefaultRoleID(),
       'register_date' => ($registerDate) ? $registerDate : date('YmdHis'),
       'source' => CRM_Utils_String::ellipsify(
@@ -633,7 +630,7 @@ class CRM_Eventinstallment_Utils {
       $participantParams['note'] = $params['participant_note'];
     }
 
-    $participantParams['discount_id'] = CRM_Core_BAO_Discount::findSet($form->getVar('_eventId'), 'civicrm_event');
+    $participantParams['discount_id'] = CRM_Core_BAO_Discount::findSet($form->getEventID(), 'civicrm_event');
 
     if (!$participantParams['discount_id']) {
       $participantParams['discount_id'] = "null";
@@ -1167,7 +1164,7 @@ class CRM_Eventinstallment_Utils {
     // Read from the session: since 6.x hook_buildAmount runs during
     // preProcess, before AdditionalParticipant loads $_params.
     $params = $form->get('params');
-    $currentContactID = $form->getLoggedInUserContactID();
+    $currentContactID = CRM_Core_Session::getLoggedInContactID();
     $childContacts = $childSortContacts = $parentContacts = [];
     foreach ($params[0] ?? [] as $k => $v) {
       if (strpos($k, 'contacts_child_') === 0) {

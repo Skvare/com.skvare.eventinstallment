@@ -119,7 +119,7 @@ function eventinstallment_civicrm_buildForm($formName, &$form) {
     }
   }
   elseif ($formName == 'CRM_Event_Form_Registration_Register') {
-    $eid = $form->getVar('_eventId');
+    $eid = $form->getEventID();
     if ($form->_values['event']['is_monetary'] && $form->_values['event']['is_recur']) {
       CRM_Eventinstallment_Utils::buildRecurForm($form);
     }
@@ -135,7 +135,7 @@ function eventinstallment_civicrm_buildForm($formName, &$form) {
 
       return;
     }
-    $currentContactID = $form->getLoggedInUserContactID();
+    $currentContactID = CRM_Core_Session::getLoggedInContactID();
 
     //CRM_Eventinstallment_Utils::_add_reload_textfield($form);
 
@@ -183,7 +183,7 @@ function eventinstallment_civicrm_buildForm($formName, &$form) {
     }
   }
   elseif($formName == 'CRM_Event_Form_Registration_AdditionalParticipant') {
-    $eid = $form->getVar('_eventId');
+    $eid = $form->getEventID();
     $defaults = CRM_Eventinstallment_Utils::getSettingsConfig($eid);
     if (!in_array($eid, (array) ($defaults['events_id'] ?? []))) {
       return;
@@ -216,7 +216,7 @@ function eventinstallment_civicrm_buildForm($formName, &$form) {
   }
   elseif (in_array($formName, ['CRM_Event_Form_Registration_Confirm', 'CRM_Event_Form_Registration_ThankYou'])) {
     $session = CRM_Core_Session::singleton();
-    $eid = $form->getVar('_eventId');
+    $eid = $form->getEventID();
     $defaults = CRM_Eventinstallment_Utils::getSettingsConfig($eid);
     $isConfiguredEvent = in_array($eid, (array) ($defaults['events_id'] ?? []));
     if ($formName == 'CRM_Event_Form_Registration_Confirm') {
@@ -288,13 +288,13 @@ function eventinstallment_civicrm_validateForm($formName, &$fields, &$files, &$f
     }
   }
   elseif ($formName == 'CRM_Event_Form_Registration_Register') {
-    $eventId = $form->getVar('_eventId');
+    $eventId = $form->getEventID();
     $defaults = CRM_Eventinstallment_Utils::getSettingsConfig($eventId);
     if (!in_array($eventId, (array) ($defaults['events_id'] ?? []))) {
       return;
     }
     $parents_can_register = CRM_Eventinstallment_Utils::canParentRegisterforEvent($eventId);
-    $currentContactID = $form->getLoggedInUserContactID();
+    $currentContactID = CRM_Core_Session::getLoggedInContactID();
     $childContacts = $parentContact = [];
     foreach ($fields as $k => $v) {
       if (strpos($k, 'contacts_child_') === 0) {
@@ -362,12 +362,12 @@ function eventinstallment_civicrm_postProcess($formName, &$form) {
     }
   }
   elseif ($formName == "CRM_Event_Form_Registration_Register") {
-    $eid = $form->getVar('_eventId');
+    $eid = $form->getEventID();
     $defaults = CRM_Eventinstallment_Utils::getSettingsConfig($eid);
     if (!in_array($eid, (array) ($defaults['events_id'] ?? []))) {
       return;
     }
-    $currentContactID = $form->getLoggedInUserContactID();
+    $currentContactID = CRM_Core_Session::getLoggedInContactID();
 
     $parents_can_register = CRM_Eventinstallment_Utils::canParentRegisterforEvent($eid);
     $session = CRM_Core_Session::singleton();
@@ -386,7 +386,7 @@ function eventinstallment_civicrm_postProcess($formName, &$form) {
 
   }
   elseif (FALSE && $formName == "CRM_Event_Form_Registration_Confirm") {
-    $eid = $form->getVar('_eventId');
+    $eid = $form->getEventID();
     $defaults = CRM_Eventinstallment_Utils::getSettingsConfig($eid);
     if (!in_array($eid, (array) ($defaults['events_id'] ?? []))) {
       return;
@@ -403,7 +403,7 @@ function eventinstallment_civicrm_postProcess($formName, &$form) {
     }
   }
   elseif ($formName == "CRM_Event_Form_Registration_AdditionalParticipant") {
-    $eid = $form->getVar('_eventId');
+    $eid = $form->getEventID();
     $defaults = CRM_Eventinstallment_Utils::getSettingsConfig($eid);
     if (!in_array($eid, (array) ($defaults['events_id'] ?? []))) {
       return;
@@ -489,13 +489,13 @@ function eventinstallment_civicrm_buildAmount($pageType, &$form, &$amounts) {
     ) {
       return;
     }
-    $eid = $form->getVar('_eventId');
+    $eid = $form->getEventID();
     $defaults = CRM_Eventinstallment_Utils::getSettingsConfig($eid);
     if (!in_array($eid, (array) ($defaults['events_id'] ?? [])) || empty($defaults['events_rule'])) {
       return;
     }
 
-    $currentContactID = $form->getLoggedInUserContactID();
+    $currentContactID = CRM_Core_Session::getLoggedInContactID();
 
     if ($formName == 'CRM_Event_Form_Registration_AdditionalParticipant') {
       [$finalContactList, $childContacts, $parentContacts] = CRM_Eventinstallment_Utils::contactSequenceForRegistration($form);
@@ -612,9 +612,9 @@ function eventinstallment_civicrm_navigationMenu(&$menu) {
 }
 
 function eventinstallment_civicrm_alterTemplateFile($formName, $form, $context, &$tplName) {
-  if ($formName == 'CRM_Event_Form_Registration_Register' && $form->getVar('_eventId')) {
-    $defaults = CRM_Eventinstallment_Utils::getSettingsConfig($form->getVar('_eventId'));
-    if (in_array($form->getVar('_eventId'), (array) ($defaults['events_id'] ?? []))) {
+  if ($formName == 'CRM_Event_Form_Registration_Register' && $form->getEventID()) {
+    $defaults = CRM_Eventinstallment_Utils::getSettingsConfig($form->getEventID());
+    if (in_array($form->getEventID(), (array) ($defaults['events_id'] ?? []))) {
       if (!CRM_Utils_System::isUserLoggedIn()) {
         $config = CRM_Core_Config::singleton();
         $destination = $config->userSystem->getLoginDestination($form);
