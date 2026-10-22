@@ -639,8 +639,12 @@ function eventinstallment_civicrm_tabset($tabsetName, &$tabs, $context) {
       'valid' => 1,
       'active' => 1,
       'current' => FALSE,
+      'class' => 'ajaxForm',
+      'icon' => 'crm-i fa-percent',
     ];
 
-    array_splice($tabs, 4, 0, $tabsDiscount);
+    // Insert after the fourth tab, keeping the 'discount' key (array_splice
+    // renumbered it to 0, so the tab was never marked as current).
+    $tabs = array_slice($tabs, 0, 4, TRUE) + $tabsDiscount + array_slice($tabs, 4, NULL, TRUE);
   }
 }
