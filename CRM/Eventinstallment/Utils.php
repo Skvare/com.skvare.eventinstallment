@@ -73,7 +73,35 @@ class CRM_Eventinstallment_Utils {
   }
 
   /**
+   * Whether a contact's answer in the event's JCC field is Yes.
+   *
+   * The field can be a Yes/No field (1 or 0) or a field with options, where
+   * No is a value too (2 on "JCC Discount?"), so compare the option label.
+   *
+   * @param string $fieldName
+   *   The field as stored in the event config, e.g. custom_12.
+   * @param mixed $value
+   *
+   * @return bool
+   */
+  public static function isJccMember($fieldName, $value) {
+    if ($value === NULL || $value === '' || $value === []) {
+      return FALSE;
+    }
+    if (!preg_match('/^custom_(\d+)$/', (string) $fieldName, $matches)) {
+      return !empty($value);
+    }
+    $label = strtolower(trim(CRM_Core_BAO_CustomField::displayValue($value, (int) $matches[1])));
+
+    return in_array($label, ['yes', strtolower(ts('Yes'))], TRUE);
+  }
+
+  /**
    * @param $form
+   * @param bool $noCal
+   *
+   * @return bool
+   *   Whether a special or financial assistance discount was applied.
    */
   public static function getAdditionalDiscount($form, $noCal = FALSE) {
     $session = CRM_Core_Session::singleton();
@@ -148,6 +176,10 @@ class CRM_Eventinstallment_Utils {
         }
       }
     }
+    // Each discount is a share of the undiscounted total, but together they
+    // can't take the total below zero: each one is capped at what is left.
+    $remainingAmount = $originalTotalAmount;
+    $discountApplied = FALSE;
     if (!empty($defaults['events_financial_discount_group'])
       && !empty($defaults['events_financial_discount_group_discount_amount'])
       && !empty($defaults['events_financial_discount_group_discount_type'])
@@ -162,6 +194,9 @@ class CRM_Eventinstallment_Utils {
         }
         [$newTotalAmount, $discountAmount, $newLabel] = self::_calc_discount
         ($originalTotalAmount, $contactResult[$defaults['events_financial_discount_group_discount_amount']], $type, 'Financial Assistance Discount');
+        $discountAmount = max($discountAmount, -$remainingAmount);
+        $remainingAmount = round($remainingAmount + $discountAmount, 2);
+        $discountApplied = TRUE;
         $item = [];
         $item['qty'] = 1;
         $item['financial_type_id'] = $financialTypeID;
@@ -186,6 +221,9 @@ class CRM_Eventinstallment_Utils {
       if (in_array($defaults['events_special_discount_group'], $groupContact)) {
         $type = $defaults['events_special_discount_type'];
         [$newTotalAmount, $discountAmount, $newLabel] = self::_calc_discount($originalTotalAmount, $defaults['events_special_discount_amount'], $type, 'Special Discount');
+        $discountAmount = max($discountAmount, -$remainingAmount);
+        $remainingAmount = round($remainingAmount + $discountAmount, 2);
+        $discountApplied = TRUE;
         $item = [];
         $item['qty'] = 1;
         $item['financial_type_id'] = $financialTypeID;
@@ -217,6 +255,36 @@ class CRM_Eventinstallment_Utils {
       $form->set('totalAmount', $totalAmount);
     }
     $form->assign('totalAmount', $totalAmount);
+
+    return $discountApplied;
+  }
+
+  /**
+   * Stop a registration whose discounts leave nothing to pay.
+   *
+   * Core does not send a zero total to the payment processor, so the
+   * registration would be completed without charging the card. Remove the
+   * Register button, refuse the submission and tell the registrant why.
+   *
+   * @param CRM_Event_Form_Registration_Confirm $form
+   */
+  public static function blockZeroAmountRegistration($form) {
+    $message = ts('The total after discounts is %1. A registration with a total of zero or less cannot be completed online. Please contact the event organizer to complete your registration.', [
+      1 => CRM_Utils_Money::format($form->getVar('_totalAmount')),
+    ]);
+    if ($form->elementExists('buttons')) {
+      $buttons = $form->getElement('buttons');
+      $nextButton = $form->getButtonName('next');
+      $buttons->setElements(array_filter($buttons->getElements(), function ($button) use ($nextButton) {
+        return $button->getName() != $nextButton;
+      }));
+    }
+    // Without the button the form can still be posted directly.
+    $form->addFormRule(function () use ($message) {
+      return ['_qf_default' => $message];
+    });
+    $form->assign('zeroAmountMessage', $message);
+    CRM_Core_Region::instance('page-body')->add(['template' => 'CRM/Eventinstallment/ZeroAmountWarning.tpl']);
   }
 
   /**

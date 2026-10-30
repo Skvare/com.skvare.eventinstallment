@@ -9,6 +9,8 @@ Event Installment changes online event registration so that a logged-in parent r
 - **Group discounts.** Two contribution-level discounts can be added on the Confirm page as line items:
   - a *special discount* (fixed or percent) for members of a group;
   - a *financial assistance discount* for members of a group, where the amount and type come from fields on the parent's contact record.
+
+  Together the discounts can't take the total below zero. If they bring it to zero, the Confirm page shows a warning and has no Register button, so the registration can't be completed online.
 - **Installments.** Paid events can let the registrant split the total into 2–12 recurring installments with a recurring-capable payment processor. The first installment is charged on Confirm.
 - **Administration.** Each event gets a "Signup and Discount" tab under Manage Event. A listing of configured events is at **Administer › CiviEvent › Custom Event Signup Setting**.
 

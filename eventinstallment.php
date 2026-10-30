@@ -173,8 +173,9 @@ function eventinstallment_civicrm_buildForm($formName, &$form) {
     }
     $form->assign('relatedContacts', $relatedContacts);
     $isJccMember = FALSE;
-    if (!empty($defaults['events_jcc_field']) && !empty($relatedContacts[$currentContactID][$defaults['events_jcc_field']])) {
-      $isJccMember = TRUE;
+    if (!empty($defaults['events_jcc_field'])) {
+      $isJccMember = CRM_Eventinstallment_Utils::isJccMember($defaults['events_jcc_field'],
+        $relatedContacts[$currentContactID][$defaults['events_jcc_field']] ?? NULL);
     }
     $session->set('is_jcc_member', $isJccMember);
     $form->assign('currentContactID', $currentContactID);
@@ -221,7 +222,10 @@ function eventinstallment_civicrm_buildForm($formName, &$form) {
     $isConfiguredEvent = in_array($eid, (array) ($defaults['events_id'] ?? []));
     if ($formName == 'CRM_Event_Form_Registration_Confirm') {
       if ($isConfiguredEvent && $form->_values['event']['is_monetary']) {
-        CRM_Eventinstallment_Utils::getAdditionalDiscount($form);
+        $discountApplied = CRM_Eventinstallment_Utils::getAdditionalDiscount($form);
+        if ($discountApplied && $form->getVar('_totalAmount') <= 0) {
+          CRM_Eventinstallment_Utils::blockZeroAmountRegistration($form);
+        }
       }
     }
     else {
@@ -305,6 +309,22 @@ function eventinstallment_civicrm_validateForm($formName, &$fields, &$files, &$f
       elseif (strpos($k, 'contacts_parent_') === 0) {
         [, , $cid] = explode('_', $k);
         $parentContact[$cid] = $cid;
+      }
+    }
+
+    // buildForm freezes the contacts that can't register (no active
+    // membership, membership fee not paid, parents not allowed), but a
+    // frozen checkbox can still be submitted: refuse them here too.
+    $relatedContacts = CRM_Eventinstallment_Utils::relatedContactsListing($form);
+    $isPaid = empty($defaults['events_group_contact']) || !empty($relatedContacts[$currentContactID]['is_paid']);
+    foreach (['child' => $childContacts, 'parent' => $parentContact] as $type => $contacts) {
+      foreach ($contacts as $cid) {
+        $contact = $relatedContacts[$cid] ?? NULL;
+        if (!$isPaid || !$contact || !empty($contact['skip_registration']) || $contact['is_parent'] != ($type == 'parent')) {
+          $errors["contacts_{$type}_{$cid}"] = ts('%1 cannot be registered for this event.', [
+            1 => $contact['display_name'] ?? ts('The selected contact'),
+          ]);
+        }
       }
     }
 
@@ -409,10 +429,12 @@ function eventinstallment_civicrm_postProcess($formName, &$form) {
     if (!in_array($eid, (array) ($defaults['events_id'] ?? []))) {
       return;
     }
-    $submit = $form->getVar('_submitValues');
     $addParticipantNum = substr($form->getVar('_name'), 12);
+    // Core registers whichever contact contact_id names, so use the contact
+    // this page was built for rather than the submitted hidden field.
+    [$finalContactList] = CRM_Eventinstallment_Utils::contactSequenceForRegistration($form);
     $_params = $form->get('params');
-    $_params[$addParticipantNum]['contact_id'] = $submit['contact_id'] ?? NULL;
+    $_params[$addParticipantNum]['contact_id'] = $finalContactList[$addParticipantNum] ?? NULL;
     $form->set('params', $_params);
   }
 
