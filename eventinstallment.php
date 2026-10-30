@@ -224,7 +224,7 @@ function eventinstallment_civicrm_buildForm($formName, &$form) {
       if ($isConfiguredEvent && $form->_values['event']['is_monetary']) {
         $discountApplied = CRM_Eventinstallment_Utils::getAdditionalDiscount($form);
         if ($discountApplied && $form->getVar('_totalAmount') <= 0) {
-          CRM_Eventinstallment_Utils::blockZeroAmountRegistration($form);
+          CRM_Eventinstallment_Utils::explainZeroAmountRegistration($form);
         }
       }
     }
@@ -249,7 +249,8 @@ function eventinstallment_civicrm_buildForm($formName, &$form) {
     // ThankYou does not declare $_totalAmount and has already reset the
     // wizard session; use the total core assigned to the template.
     $totalAmount = ($formName == 'CRM_Event_Form_Registration_Confirm') ? $form->getVar('_totalAmount') : $form->getTemplateVars('totalAmount');
-    if (!empty($params['0']['is_recur']) && !empty($params['0']['installments'])) {
+    // With nothing to pay core creates no installments, so don't show them.
+    if (!empty($params['0']['is_recur']) && !empty($params['0']['installments']) && $totalAmount > 0) {
       $template = CRM_Core_Smarty::singleton();
       $template->assign('is_recur', TRUE);
       $template->assign('frequency_interval', $params['0']['frequency_interval'] ?? 1);

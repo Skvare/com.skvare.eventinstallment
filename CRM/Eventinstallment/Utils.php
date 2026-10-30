@@ -260,31 +260,29 @@ class CRM_Eventinstallment_Utils {
   }
 
   /**
-   * Stop a registration whose discounts leave nothing to pay.
+   * Explain a registration whose discounts leave nothing to pay.
    *
-   * Core does not send a zero total to the payment processor, so the
-   * registration would be completed without charging the card. Remove the
-   * Register button, refuse the submission and tell the registrant why.
+   * Core completes a registration with a zero total without sending anything
+   * to the payment processor (and without creating installments), so the
+   * card entered on the Register page is not charged. Say so on Confirm.
    *
    * @param CRM_Event_Form_Registration_Confirm $form
    */
-  public static function blockZeroAmountRegistration($form) {
-    $message = ts('The total after discounts is %1. A registration with a total of zero or less cannot be completed online. Please contact the event organizer to complete your registration.', [
-      1 => CRM_Utils_Money::format($form->getVar('_totalAmount')),
-    ]);
-    if ($form->elementExists('buttons')) {
-      $buttons = $form->getElement('buttons');
-      $nextButton = $form->getButtonName('next');
-      $buttons->setElements(array_filter($buttons->getElements(), function ($button) use ($nextButton) {
-        return $button->getName() != $nextButton;
-      }));
+  public static function explainZeroAmountRegistration($form) {
+    // Core's text for a free registration; the processor's text was chosen
+    // before the discounts were applied.
+    $form->assign('verifyText', ts('Click <strong>%1</strong> to complete your registration.', [1 => ts('Register')]));
+    if ($form->getTemplateVars('showPaymentOnConfirm')) {
+      // Core hides the payment fields on Confirm when the total is zero.
+      $message = ts('Your discounts cover the full fee, so there is nothing to pay and no card details are needed.');
     }
-    // Without the button the form can still be posted directly.
-    $form->addFormRule(function () use ($message) {
-      return ['_qf_default' => $message];
-    });
+    else {
+      // Stripe authorizes the card on the Register page; the Stripe cleanup
+      // job (or Stripe itself) cancels an authorization that is not captured.
+      $message = ts('Your discounts cover the full fee, so there is nothing to pay: your card will not be charged. If your bank shows a temporary hold from the previous step, it will be released.');
+    }
     $form->assign('zeroAmountMessage', $message);
-    CRM_Core_Region::instance('page-body')->add(['template' => 'CRM/Eventinstallment/ZeroAmountWarning.tpl']);
+    CRM_Core_Region::instance('page-body')->add(['template' => 'CRM/Eventinstallment/ZeroAmountMessage.tpl']);
   }
 
   /**
@@ -466,6 +464,9 @@ class CRM_Eventinstallment_Utils {
         'contact_id' => $cid,
         //'membership_type_id' => "1",
         'status_id' => ['IN' => ["New", "Current"]],
+        // API3 Membership.get returns test memberships too; a test-drive
+        // signup must not let the child register.
+        'is_test' => 0,
         'options' => ['sort' => "end_date desc", 'limit' => 1],
       ];
       if (!empty($defaults['events_membership_types'])) {
