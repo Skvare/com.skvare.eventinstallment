@@ -981,7 +981,9 @@ class CRM_Eventinstallment_Utils {
     //$currentDate = strtotime("15 January 2022");
     //$currentDate = strtotime("15 March 2022");
     $childNumber = ($childNumber >= 4) ? 4 : $childNumber;
-    $defaultFee = $sellFee = $eventFeeDetails['regular'] ?? NULL;
+    // A blank "Default Fee" is saved as '', which PHP 8 cannot subtract.
+    $regularFee = $eventFeeDetails['regular'] ?? NULL;
+    $defaultFee = $sellFee = is_numeric($regularFee) ? $regularFee : NULL;
     $siblingDiscountFee = 0;
     $discountName = '';
     foreach ($eventFeeDetails as $discountDetails) {
